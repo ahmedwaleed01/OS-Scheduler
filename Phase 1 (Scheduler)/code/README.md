@@ -1,10 +1,10 @@
-## headers.h contains clk functions, it should be included anywhere the clock functions are used.
+# headers.h contains clk functions, it should be included anywhere the clock functions are used.
 
-## To get time call:
+# To get time call:
 
 getClk();
 
-## You can use Makefile to build and run your project
+# You can use Makefile to build and run your project
 
 # To compile your project, use the command:
 make
