@@ -19,11 +19,7 @@ int main(int argc, char * argv[])
     // Create Process Table
     struct processInputData processTable[numberProcesses];
     for(int i=0; i<numberProcesses;i++){
-        int result=fscanf(fptr,"%d\t%d\t%d\t%d",&processTable[i].id,&processTable[i].arrivalTime,&processTable[i].runTime,&processTable[i].priority);
-         if (result != 4) {
-            printf("Error reading data for process %d\n", i);
-            continue; // Skip to the next iteration if there was an error
-        }
+        fscanf(fptr,"%d\t%d\t%d\t%d",&processTable[i].id,&processTable[i].arrivalTime,&processTable[i].runTime,&processTable[i].priority);
         // printf("%d: %d %d %d %d\n",i,processTable[i].id,processTable[i].arrivalTime,processTable[i].runTime,processTable[i].priority);
     }
 
@@ -34,19 +30,103 @@ int main(int argc, char * argv[])
     printf("2. Shortest Remaining time Next (SRTN)\n");
     printf("3. Round Robin (RR) \n");
     scanf("%d",algorithmChosen);
+    // convert it to string to send to schedular
+    char str_algorithmChosen[10];
+    sprintf(str_algorithmChosen,"%d",algorithmChosen);
 
-
+    
     // 3. Initiate and create the scheduler and clock processes.
 
+    // Getting Routes for Scheduler and Clock code path 
+    char schedularDirectory[256];
+    char clockDicrectory[256];
+    char *schedularCode,*clockCode;
 
+    // Get the current working directory and concatenate the code.out path
+    if (getcwd(schedularDirectory, sizeof(schedularDirectory)) != NULL && getcwd(clockDicrectory, sizeof(clockDicrectory)) != NULL) {
+       schedularCode = strcat(schedularDirectory,'/scheduler.out');
+       clockCode  =  strcat(clockDicrectory,'/clk.out');
+    } else {
+        perror("Error in getting the working directory ");
+        return 1;
+    }
+
+    pid_t pidScheduler = fork ();
+    if (pidScheduler==-1){
+        printf("Error in forking scheduler\n");
+        exit(-1);
+    }
+
+    if(pidScheduler == 0){ 
+            ////// Scheduler Code //////////
+        execl(schedularCode,str_algorithmChosen);
+        perror("Error executing scheduler!");
+        exit(-1);
+    }
+    else{ 
+        /////// process generator code ////////
+        pid_t pidClock = fork();
+        if (pidClock==-1){
+            printf("Error in forking Clock\n");
+            exit(-1);
+        }
+
+        if(pidScheduler == 0){ 
+                ////// Clock Code //////////
+            execl(clockCode,NULL);
+            perror("Error executing scheduler!");
+            exit(-1);
+        }
+    }
     // 4. Use this function after creating the clock process to initialize clock
     initClk();
     // To get time use this
     int x = getClk();
     printf("current time is %d\n", x);
     // TODO Generation Main Loop
-    // 5. Create a data structure for processes and provide it with its parameters.
+    // Create a data structure for processes and provide it with its parameters.
+    struct processData processDataTable[numberProcesses];
+    for (int i=0 ; i<numberProcesses; i++){
+        processDataTable[i].id=processTable[i].id;
+        processDataTable[i].arrivalTime=processTable[i].arrivalTime;
+        processDataTable[i].runTime=processTable[i].runTime;
+        processDataTable[i].priority=processTable[i].priority;
+        processDataTable[i].remainingTime=processTable[i].runTime;
+        processDataTable[i].finishedTime = 0;
+        processDataTable[i].turnAroundTime=0;
+        processDataTable[i].waitingTime=0;
+        processDataTable[i].weightedTurnAroundTime=0;
+        strcpy(processDataTable[i].state,"ready");
+    }
     // 6. Send the information to the scheduler at the appropriate time.
+    // Create message queue between process generator and scheduler
+    key_t key_id;
+    key_id = ftok("keyfile", 60);
+    int msgId_GeneratorSchedular = msgget(key_id, 0666 | IPC_CREAT);
+    if (msgId_GeneratorSchedular == -1)
+    {
+        perror("Error in create message queue:)");
+        exit(-1);
+    }
+    printf("message queue Id between process generator and scheduler %d\n", msgId_GeneratorSchedular );
+
+    struct msg msg;
+    msg.mType = 1;
+    int sendVal;
+    int countProcessSent=0;
+    while (countProcessSent < numberProcesses){
+         /************ if process Arrived send it to the scheduler  ****************/
+        if (processDataTable[countProcessSent].arrivalTime <= getClk()){
+            msg.process=processDataTable[countProcessSent];
+            sendVal = msgsnd(msgId_GeneratorSchedular,&msg, sizeof(struct msg),!IPC_NOWAIT);
+            if(sendVal == -1){
+                perror("Error in sending process to the Scheduler");
+                exit(-1);
+            }
+            countProcessSent++;
+        }
+    }
+    printf("Process Generator Finsihed in sending Processes to the Scheduler\n");
     // 7. Clear clock resources
     destroyClk(true);
 }

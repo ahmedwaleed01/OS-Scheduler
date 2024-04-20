@@ -198,6 +198,17 @@ void printList(struct List *list)
 }
 
 
+/********************
+ * 
+ * Message Structure
+ * 
+*********************/
+struct msg {
+    int mType;
+    struct processDate process;
+};
+
+
 /*
  * All process call this function at the end to release the communication
  * resources between them and the clock module.
