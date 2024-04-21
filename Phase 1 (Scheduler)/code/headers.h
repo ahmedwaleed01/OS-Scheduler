@@ -19,6 +19,7 @@ typedef short bool;
 #define SHKEY 300
 
 
+
 //don't mess with this variable//
 int * shmaddr;                 //
 //===============================
@@ -205,7 +206,7 @@ void printList(struct List *list)
 *********************/
 struct msg {
     int mType;
-    struct processDate process;
+    struct processData process;
 };
 
 

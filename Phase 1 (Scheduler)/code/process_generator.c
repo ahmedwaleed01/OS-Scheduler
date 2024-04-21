@@ -4,7 +4,7 @@ void clearResources(int);
 
 int main(int argc, char * argv[])
 {
-    // signal(SIGINT, clearResources);
+    signal(SIGINT, clearResources);
 
     // Read the input files.
     FILE *fptr;
@@ -29,23 +29,21 @@ int main(int argc, char * argv[])
     printf("1. Non-preemptive Highest Priority First (HPF) \n");
     printf("2. Shortest Remaining time Next (SRTN)\n");
     printf("3. Round Robin (RR) \n");
-    scanf("%d",algorithmChosen);
+    scanf("%d",&algorithmChosen);
     // convert it to string to send to schedular
     char str_algorithmChosen[10];
     sprintf(str_algorithmChosen,"%d",algorithmChosen);
 
-    
-    // 3. Initiate and create the scheduler and clock processes.
-
-    // Getting Routes for Scheduler and Clock code path 
+    /*  Initiate and create the scheduler and clock processes.
+     *  Getting Routes for Scheduler and Clock code path    */
     char schedularDirectory[256];
     char clockDicrectory[256];
     char *schedularCode,*clockCode;
 
     // Get the current working directory and concatenate the code.out path
     if (getcwd(schedularDirectory, sizeof(schedularDirectory)) != NULL && getcwd(clockDicrectory, sizeof(clockDicrectory)) != NULL) {
-       schedularCode = strcat(schedularDirectory,'/scheduler.out');
-       clockCode  =  strcat(clockDicrectory,'/clk.out');
+       schedularCode = strcat(schedularDirectory,"/scheduler.out");
+       clockCode  =  strcat(clockDicrectory,"/clk.out");
     } else {
         perror("Error in getting the working directory ");
         return 1;
@@ -58,32 +56,31 @@ int main(int argc, char * argv[])
     }
 
     if(pidScheduler == 0){ 
-            ////// Scheduler Code //////////
-        execl(schedularCode,str_algorithmChosen);
+                    /**** Scheduler Code ****/
+        execl(schedularCode,schedularCode,str_algorithmChosen, NULL);
         perror("Error executing scheduler!");
         exit(-1);
     }
     else{ 
-        /////// process generator code ////////
+             /**process generator code**/
         pid_t pidClock = fork();
-        if (pidClock==-1){
+        if (pidClock== -1){
             printf("Error in forking Clock\n");
             exit(-1);
         }
 
-        if(pidScheduler == 0){ 
-                ////// Clock Code //////////
-            execl(clockCode,NULL);
+        if( pidClock == 0){ 
+              /***** Clock Code *****/
+            execl(clockCode,clockCode,NULL);
             perror("Error executing scheduler!");
             exit(-1);
         }
     }
-    // 4. Use this function after creating the clock process to initialize clock
+    // Use this function after creating the clock process to initialize clock
     initClk();
     // To get time use this
     int x = getClk();
     printf("current time is %d\n", x);
-    // TODO Generation Main Loop
     // Create a data structure for processes and provide it with its parameters.
     struct processData processDataTable[numberProcesses];
     for (int i=0 ; i<numberProcesses; i++){
@@ -98,7 +95,6 @@ int main(int argc, char * argv[])
         processDataTable[i].weightedTurnAroundTime=0;
         strcpy(processDataTable[i].state,"ready");
     }
-    // 6. Send the information to the scheduler at the appropriate time.
     // Create message queue between process generator and scheduler
     key_t key_id;
     key_id = ftok("keyfile", 60);
@@ -109,7 +105,7 @@ int main(int argc, char * argv[])
         exit(-1);
     }
     printf("message queue Id between process generator and scheduler %d\n", msgId_GeneratorSchedular );
-
+    // Send the information to the scheduler at the appropriate time.
     struct msg msg;
     msg.mType = 1;
     int sendVal;
@@ -127,6 +123,7 @@ int main(int argc, char * argv[])
         }
     }
     printf("Process Generator Finsihed in sending Processes to the Scheduler\n");
+
     // 7. Clear clock resources
     destroyClk(true);
 }
@@ -134,4 +131,5 @@ int main(int argc, char * argv[])
 void clearResources(int signum)
 {
     //TODO Clears all resources in case of interruption
+    exit(EXIT_SUCCESS);
 }

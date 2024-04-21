@@ -1,5 +1,10 @@
 #include "headers.h"
-int msgId_GeneratorSchedular, sendVal_GeneratorSchedular, msgId_SchedularProcess,sendVal_SchedularProcess;
+int msgId_GeneratorSchedular, recVal_GeneratorSchedular, msgId_SchedularProcess,sendVal_SchedularProcess;
+
+
+void HPF(){
+    
+}
 
 
 int main(int argc, char * argv[])
@@ -20,7 +25,7 @@ int main(int argc, char * argv[])
     }
     // Create message queue between scheduler and processes
     key_t key_id2;
-    key_id2 = ftok("keyfile", 70);
+    key_id2 = ftok("keyfile", 75);
     msgId_SchedularProcess = msgget(key_id2, 0666 | IPC_CREAT);
     if ( msgId_SchedularProcess == -1)
     {
@@ -29,6 +34,25 @@ int main(int argc, char * argv[])
     }
     printf("message queue Id between process generator and scheduler %d\n", msgId_GeneratorSchedular );
     printf("message queue Id between scheduler and processes %d\n", msgId_SchedularProcess );
+
+    int schedulerAlgorithm = atoi(argv[1]);
+    
+    if (schedulerAlgorithm == 1){
+        // call HPF
+        printf("HPF ALGO\n");
+    }else if (schedulerAlgorithm == 2){
+        //call SRTN
+         printf("SRTN ALGO\n");
+    }else if (schedulerAlgorithm == 3){
+        //call RB
+         printf("RB ALGO\n");
+    }
+     while (1) {
+        printf("clock time : %d\n",getClk());
+        sleep(2);
+    }
+
+    // msgrcv(msgID, &msg, sizeof(msg.mprocess), 0, IPC_NOWAIT) != -1
 
     
     
