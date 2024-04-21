@@ -29,10 +29,12 @@ int main(int argc, char * argv[])
     printf("1. Non-preemptive Highest Priority First (HPF) \n");
     printf("2. Shortest Remaining time Next (SRTN)\n");
     printf("3. Round Robin (RR) \n");
-    scanf("%d",&algorithmChosen);
+    scanf("%d",&algorithmChosen);                             ///////////////////////////// choose q //////////////////////////////////////
     // convert it to string to send to schedular
     char str_algorithmChosen[10];
+    char str_numberProcesses[10];
     sprintf(str_algorithmChosen,"%d",algorithmChosen);
+    sprintf(str_numberProcesses,"%d",numberProcesses);
 
     /*  Initiate and create the scheduler and clock processes.
      *  Getting Routes for Scheduler and Clock code path    */
@@ -56,8 +58,8 @@ int main(int argc, char * argv[])
     }
 
     if(pidScheduler == 0){ 
-                    /**** Scheduler Code ****/
-        execl(schedularCode,schedularCode,str_algorithmChosen, NULL);
+                /**** Scheduler Code ****/
+        execl(schedularCode,schedularCode,str_algorithmChosen,str_numberProcesses, NULL);
         perror("Error executing scheduler!");
         exit(-1);
     }
@@ -106,15 +108,16 @@ int main(int argc, char * argv[])
     }
     printf("message queue Id between process generator and scheduler %d\n", msgId_GeneratorSchedular );
     // Send the information to the scheduler at the appropriate time.
-    struct msg msg;
-    msg.mType = 1;
+    struct msgbuff msg;
+    msg.mType = 2;
     int sendVal;
     int countProcessSent=0;
-    while (countProcessSent < numberProcesses){
+    while (countProcessSent < numberProcesses){             
          /************ if process Arrived send it to the scheduler  ****************/
         if (processDataTable[countProcessSent].arrivalTime <= getClk()){
             msg.process=processDataTable[countProcessSent];
-            sendVal = msgsnd(msgId_GeneratorSchedular,&msg, sizeof(struct msg),!IPC_NOWAIT);
+            printf("process :%d is sent\n",msg.process.id);
+            sendVal = msgsnd(msgId_GeneratorSchedular,&msg, sizeof(msg.process),!IPC_NOWAIT);
             if(sendVal == -1){
                 perror("Error in sending process to the Scheduler");
                 exit(-1);
@@ -123,7 +126,7 @@ int main(int argc, char * argv[])
         }
     }
     printf("Process Generator Finsihed in sending Processes to the Scheduler\n");
-
+    while(1);
     // 7. Clear clock resources
     destroyClk(true);
 }

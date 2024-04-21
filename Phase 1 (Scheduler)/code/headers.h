@@ -177,6 +177,11 @@ struct processData *dequeue(struct List *queue){
     return processFirstNode;
 }
 
+bool isEmpty(struct List *list){
+    if (list->head == NULL) return true;
+    else return false;
+}
+
 void printList(struct List *list)
 {
     if (list == NULL){
@@ -198,13 +203,18 @@ void printList(struct List *list)
     }
 }
 
+void printProcessInfo(struct processData*process){
+    printf("Process id:%d Arrival Time:%d Run Time: %d Remain Time:%d Priority: %d Finished Time: %d PID: %d Waiting Time:%d State:%s\n",
+    process->id,process->arrivalTime,process->runTime,process->remainingTime,process->priority,process->finishedTime,process->PID,
+    process->waitingTime,process->state);
+}
 
 /********************
  * 
  * Message Structure
  * 
 *********************/
-struct msg {
+struct msgbuff {
     int mType;
     struct processData process;
 };
