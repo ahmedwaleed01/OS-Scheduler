@@ -19,7 +19,6 @@ typedef short bool;
 #define SHKEY 300
 
 
-
 //don't mess with this variable//
 int * shmaddr;                 //
 //===============================
@@ -113,16 +112,25 @@ struct Node* createNode(struct processData* newProcess){
     strcpy( nodeCreated->process->state,newProcess->state);
     return nodeCreated;
 };
-/***************************** List ***********************************************/
+/******************************** List ********************************************/
 struct List{
     struct Node*head;
     int size;
+    bool remainTime;
 };
 /***************************** PriorityQueue **************************************/
 struct List *createPriorityQueue(){
     struct List*priorityQueue = malloc(sizeof(struct List));
     priorityQueue->head=NULL;
     priorityQueue->size=0;
+    priorityQueue->remainTime=false;
+    return priorityQueue;
+};
+struct List *createQueuePirorityRemainTime(){
+    struct List*priorityQueue = malloc(sizeof(struct List));
+    priorityQueue->head=NULL;
+    priorityQueue->size=0;
+    priorityQueue->remainTime=true;
     return priorityQueue;
 };
 void Insert (struct List *linkedList, struct processData* newProcess){
@@ -148,15 +156,19 @@ void enqueue(struct List *queue, struct processData* newProcess){
         queue->size++;
         return;
     }
-    if(queue->head->process->priority > newProcess->priority){
+    if ( (queue->remainTime == false && queue->head->process->priority > newProcess->priority) || 
+        (queue->remainTime == true && queue->head->process->remainingTime > newProcess->remainingTime)
+    ){
         struct Node*temp=queue->head;
         queue->head=newNode;
         newNode->next=temp;
         queue->size++;
         return;
     }
+
     if(queue->size == 1){
-        if(queue->head->process->priority <= newProcess->priority){
+        if( (queue->remainTime == false && queue->head->process->priority <= newProcess->priority) ||
+        (queue->remainTime == true && queue->head->process->remainingTime <= newProcess->remainingTime)){
            queue->head->next = newNode; 
         }else{
             struct Node*temp=queue->head;
@@ -168,7 +180,8 @@ void enqueue(struct List *queue, struct processData* newProcess){
     }
     struct Node*prevNode=queue->head,*nextNode=queue->head->next;
     for(int i=0;i < queue->size -1 ; i++){
-        if ( newProcess->priority >= nextNode->process->priority ){
+        if ( (queue->remainTime == false && newProcess->priority >= nextNode->process->priority)|| 
+            (queue->remainTime == true && newProcess->remainingTime >= nextNode->process->remainingTime)){
            prevNode = prevNode->next;
            nextNode = nextNode->next;
         }else{

@@ -2,9 +2,11 @@
 int msgId_GeneratorSchedular, recVal_GeneratorSchedular, msgId_SchedularProcess,sendVal_SchedularProcess;
 struct List * processQueue;
 struct List * processFinished;
+struct List * processStoppedQueue;
 struct msgbuff msg;
 struct msgBuff1 msg2;
-struct processData*firstProcess =NULL;
+struct processData*processRun =NULL;
+struct processData*firstProcess=NULL;
 int numberProcesses,finishedProcesses=0;
 bool isRunning =false;
 int pid ;
@@ -26,16 +28,37 @@ void HPF(){
         printProcessInfo(process);
         numberProcesses --;
     }
+    /**************************************************************************************
+     * Case there is a Process running send message to process to decrement remaining time
+     * wait a signal from process then it finishes
+     * *************************************************************************************/
+    if(isRunning){
+        msg2.mType=processRun->PID;
+        int sendVal = msgsnd(msgId_SchedularProcess,&msg2, sizeof(msg2.decrement),!IPC_NOWAIT);
+        printf("***************************message recieverd   %d\n",msg2.mType);
+        processRun->remainingTime--;
+        printProcessInfo(processRun);
+        if (processRun->remainingTime == 0){
+            waitpid(msg2.mType,NULL,0);
+            isRunning= false;
+            printf("finished process %d\n",getClk());
+            sprintf(processRun->state,"finished");
+            processRun->finishedTime=getClk();
+            finishedProcesses++;
+            Insert(processFinished,processRun);
+        }
+
+    }
      /**************************************************************************************
      *  Case there is no process running send fork a process on the top of the queue 
      * *************************************************************************************/
     if(!isRunning){
-        firstProcess= dequeue(processQueue);
-        if(firstProcess== NULL) return;
+        processRun= dequeue(processQueue);
+        if(processRun== NULL) return;
         isRunning=true;
-        strcpy(firstProcess->state,"started");
+        strcpy(processRun->state,"started");
         char str_remainTime[10];
-        sprintf(str_remainTime,"%d",firstProcess->remainingTime);
+        sprintf(str_remainTime,"%d",processRun->remainingTime);
 
         pid= fork ();
        
@@ -44,8 +67,8 @@ void HPF(){
         }
         else if (pid == 0){
                 /********* Process Code *********/
-            firstProcess->PID= getpid();
-            printf("process %d is Created\n", firstProcess->PID);
+            processRun->PID= getpid();
+            printf("process %d is Created\n", processRun->PID);
             printProcessInfo(firstProcess);
             char *processCode;
             char processDirectory[256];
@@ -57,32 +80,125 @@ void HPF(){
             execl(processCode,processCode,str_remainTime,NULL);
             exit(1);
         }else{
-             firstProcess->PID=pid;
-             msg2.mType=pid;
+            processRun->PID=pid;           
         }
         return;
     }
-    /**************************************************************************************
-     * Case there is a Process running send message to process to decrement remaining time
-     * wait a signal from process then it finishes
-     * *************************************************************************************/
-    else if(isRunning){
-       
+}
+/********************************************************
+ ********************************************************
+ *** IMPLEMENTATION OF SHORTEST REMAINING TIME FIRST ****
+ ********************************************************
+ ********************************************************/
+void SRTN(){
+    while (msgrcv(msgId_GeneratorSchedular, &msg, sizeof(msg.process), 0, IPC_NOWAIT) != -1){
+        printf("time :%d\n",getClk());
+        struct processData *process =(struct processData*)malloc(sizeof(msg.process));
+        *process=msg.process;
+        strcpy(process->state,"ready");
+        enqueue(processQueue,process);
+        printProcessInfo(process);
+        numberProcesses --;
+    }
+    if(isRunning) {
+        msg2.mType=processRun->PID;
+        printf("///////////////////PROCEESSS REMAIN TIMEEEEEE: %d   %d\n",processRun->remainingTime,msg2.mType);
         int sendVal = msgsnd(msgId_SchedularProcess,&msg2, sizeof(msg2.decrement),!IPC_NOWAIT);
-        firstProcess->remainingTime--;
-        printProcessInfo(firstProcess);
-        if (firstProcess->remainingTime == 0){
+        processRun->remainingTime--;
+        printProcessInfo(processRun);
+        if (processRun->remainingTime == 0){
             waitpid(msg2.mType,NULL,0);
             isRunning= false;
             printf("finished process %d\n",getClk());
-            sprintf(firstProcess->state,"finished");
-            firstProcess->finishedTime=getClk();
+            sprintf(processRun->state,"finished");
+            processRun->finishedTime=getClk();
             finishedProcesses++;
-            Insert(processFinished,firstProcess);
+            printf("NUMBER FINISHED PROCESSSSSSSSS: %d\n",finishedProcesses);
+            Insert(processFinished,processRun);
         }
 
     }
+    if(!isRunning){
+        if(!isEmpty(processStoppedQueue) && !isEmpty(processQueue) 
+        && processStoppedQueue->head->process->remainingTime <= processStoppedQueue->head->process->remainingTime){
+            processRun = dequeue(processStoppedQueue);
+            strcpy(processRun->state,"resumed");
+            msg2.mType=processRun->PID;
+            printf("PROCESSSSSSSSSSSSSSSSSSS  %d   STATEEEEEEEEEEE :: %s\n",msg2.mType,processRun->state);
+            isRunning=true;
+        }
+        else {
+             processRun= dequeue(processQueue);
+             if(processRun== NULL) return;
+            isRunning=true;
+            strcpy(processRun->state,"started");
+            char str_remainTime[10];
+            sprintf(str_remainTime,"%d",processRun->remainingTime);
 
+             pid= fork ();
+       
+            if(pid == -1){
+              perror("Error in forking process;)\n");
+            }
+            else if (pid == 0){
+                        /********* Process Code *********/
+                processRun->PID= getpid();
+                printf("process %d is Created\n", processRun->PID);
+                printProcessInfo(processRun);
+                char *processCode;
+                char processDirectory[256];
+                if (getcwd(processDirectory, sizeof(processDirectory)) != NULL ) {
+                    processCode = strcat(processDirectory,"/process.out");     
+                }else {
+                    perror("Error in getting the working directory ");
+                }
+                execl(processCode,processCode,str_remainTime,NULL);
+                exit(1);
+            }else{
+                processRun->PID=pid;
+                msg2.mType=pid;
+            }
+            return;
+        }
+    }
+    else if (isRunning && !isEmpty(processQueue) && processRun->remainingTime > processQueue->head->process->remainingTime){
+            strcpy(processRun->state,"stopped");
+            enqueue(processStoppedQueue,processRun);
+            processRun= dequeue(processQueue);
+            if(processRun== NULL) return;
+            strcpy(processRun->state,"started");
+            char str_remainTime[10];
+            sprintf(str_remainTime,"%d",processRun->remainingTime);
+
+            pid= fork ();
+       
+            if(pid == -1){
+                perror("Error in forking process;)\n");
+            }
+            else if (pid == 0){
+                /********* Process Code *********/
+                processRun->PID= getpid();
+                printf("process %d is Created\n", processRun->PID);
+                printProcessInfo(processRun);
+                char *processCode;
+                char processDirectory[256];
+            if (getcwd(processDirectory, sizeof(processDirectory)) != NULL ) {
+                 processCode = strcat(processDirectory,"/process.out");     
+            } else {
+                perror("Error in getting the working directory ");
+            }
+                execl(processCode,processCode,str_remainTime,NULL);
+                exit(1);
+            }else{
+                processRun->PID=pid;
+                msg2.mType=pid;
+                printf("testtttttttttttttttttttttttttttttttttttttttttttttttttt %d \n", msg2.mType);
+            }  
+            processRun->PID=pid;
+            msg2.mType=pid;
+            printf("testtttttttttttttttttttttttttttttttttttttttttttttttttt2222 %d \n", msg2.mType);
+            return;
+    }
 }
 
 
@@ -116,19 +232,23 @@ int main(int argc, char * argv[])
     int schedulerAlgorithm = atoi(argv[1]);
     numberProcesses = atoi(argv[2]);
 
-    processQueue = createPriorityQueue();
+    if (schedulerAlgorithm == 1)  processQueue = createPriorityQueue();
+    else if (schedulerAlgorithm == 2){  
+        processQueue = createQueuePirorityRemainTime();
+        processStoppedQueue =createQueuePirorityRemainTime();
+    }
+
     processFinished = createPriorityQueue();
     int processCounts=numberProcesses;
     while(finishedProcesses != processCounts){
             if (schedulerAlgorithm == 1){
                  // call HPF
-               
-                // printf("HPF ALGO\n");
                 HPF();
                 sleep(1);
             }else if (schedulerAlgorithm == 2){
-                //call SRTN
-                printf("SRTN ALGO\n");
+                // //call SRTN
+                SRTN();
+                sleep(1);
             }else if (schedulerAlgorithm == 3){
                    //call RB
                 printf("RB ALGO\n");
