@@ -125,6 +125,22 @@ struct List *createPriorityQueue(){
     priorityQueue->size=0;
     return priorityQueue;
 };
+void Insert (struct List *linkedList, struct processData* newProcess){
+    struct Node*newNode =createNode(newProcess);
+    if(linkedList->head == NULL){
+        linkedList->head=newNode;
+        linkedList->size++;
+        return;
+    }
+    struct Node * ptr = linkedList->head;
+    while (ptr->next !=NULL){
+        ptr=ptr->next;
+    }
+    ptr->next = newNode;
+    newNode->next = NULL;
+    linkedList->size++;
+}
+
 void enqueue(struct List *queue, struct processData* newProcess){
     struct Node*newNode =createNode(newProcess);
     if(queue->head == NULL){
@@ -197,8 +213,8 @@ void printList(struct List *list)
     while (nodeTemp != NULL)
     {
         struct processData *proc = nodeTemp->process;
-        printf("Process ID: %d, Arrival Time: %d, Running Time: %d, Priority: %d, Remaining Time: %d\n",
-               proc->id, proc->arrivalTime, proc->runTime, proc->priority, proc->remainingTime);
+        printf("Process ID: %d, Arrival Time: %d, Running Time: %d, Priority: %d, Remaining Time: %d , Finished Time: %d, state: %s\n",
+               proc->id, proc->arrivalTime, proc->runTime, proc->priority, proc->remainingTime,proc->finishedTime,proc->state);
         nodeTemp = nodeTemp->next;
     }
 }
@@ -217,6 +233,11 @@ void printProcessInfo(struct processData*process){
 struct msgbuff {
     int mType;
     struct processData process;
+};
+
+struct msgBuff1 {
+    int mType;
+    int decrement;
 };
 
 

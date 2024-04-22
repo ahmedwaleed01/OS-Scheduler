@@ -100,7 +100,7 @@ int main(int argc, char * argv[])
     // Create message queue between process generator and scheduler
     key_t key_id;
     key_id = ftok("keyfile", 60);
-    int msgId_GeneratorSchedular = msgget(key_id, 0666 | IPC_CREAT);
+    int msgId_GeneratorSchedular = msgget(55555, 0666 | IPC_CREAT);
     if (msgId_GeneratorSchedular == -1)
     {
         perror("Error in create message queue:)");

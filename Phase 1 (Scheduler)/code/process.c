@@ -20,14 +20,24 @@ int main(int agrc, char * argv[])
     printf("message queue Id between scheduler and processes %d\n", msgId_SchedularProcess );
     int remainingtime = atoi(argv[1]);
     struct msgbuff msg;
-
+    struct msgBuff1 msg2;
     while (remainingtime > 0)
     {
-        sleep(1);
+    
+        // if(msgrcv(msgId_SchedularProcess, &msg2, sizeof(msg2.decrement), getpid(), IPC_NOWAIT) != -1){
+        //     remainingtime --;
+        //     printf("remaining time : %d\n",remainingtime);
+        // }
+        printf("PROCESS ID: %d\n",getpid());
+        msgrcv(msgId_SchedularProcess, &msg2, sizeof(msg2.decrement), getpid(), !IPC_NOWAIT);
+        
         remainingtime --;
+        printf("message from scheduler type: %d\n",msg2.mType);
+
+        printf("The Remaining Time %d clock time: %d\n",remainingtime,getClk());
         if (remainingtime == 0){
             printf("process %d finished\n",getpid());
-            msg.mType=getpid();
+            // msg.mType=getpid();
             // int sendVal = msgsnd(msgId_SchedularProcess,&msg, sizeof(msg.process),!IPC_NOWAIT);
             // if(sendVal == -1){
             //     perror("Error in sending process to the Scheduler");
