@@ -1,10 +1,60 @@
 #include "headers.h"
+#include <gtk/gtk.h> 
 
 void clearResources(int);
+int algorithmChosen;
+void callBackFunc(GtkWidget* widget,gpointer data){
+     const char *buttonLabel = (const char*)data;
+    algorithmChosen=atoi(buttonLabel);
+    printf("Algorithm Chosen: %d\n", algorithmChosen);
+    GtkWidget *window = GTK_WIDGET(gtk_widget_get_ancestor(widget, GTK_TYPE_WINDOW));
+    gtk_widget_destroy(window);
+}
 
+void destroy(GtkWidget* widget, gpointer data) 
+{ 
+    gtk_main_quit(); 
+} 
+  
 int main(int argc, char * argv[])
 {
     signal(SIGINT, clearResources);
+    /************************************
+     *******Initilize GUI Window ********
+     ***********************************/
+    GtkWidget *window;
+    GtkWidget *vbox_main;
+    GtkWidget *vbox_buttons;
+    GtkWidget *label;
+    GtkWidget *buttonHPF;
+    GtkWidget *buttonSRTN;
+    GtkWidget *buttonRB;
+    gtk_init(&argc, &argv);
+    window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+    gtk_window_set_title(GTK_WINDOW(window), "Scheduler App");
+    g_signal_connect(window, "destroy", G_CALLBACK(destroy), NULL); 
+    gtk_container_set_border_width(GTK_CONTAINER(window), 50);
+    /************************************
+     *******Add GUI Components **********
+     ***********************************/   
+    vbox_main = gtk_box_new(GTK_ORIENTATION_VERTICAL, 5);
+    gtk_container_add(GTK_CONTAINER(window), vbox_main);
+    label = gtk_label_new("Choose the scheduler algorithm:");
+    gtk_box_pack_start(GTK_BOX(vbox_main), label, FALSE, FALSE, 0);
+    vbox_buttons = gtk_box_new(GTK_ORIENTATION_VERTICAL, 5);
+    gtk_box_pack_start(GTK_BOX(vbox_main), vbox_buttons, FALSE, FALSE, 0);
+    buttonHPF = gtk_button_new_with_label("HPF");
+    buttonSRTN = gtk_button_new_with_label("SRTN");
+    buttonRB = gtk_button_new_with_label("RB");
+    g_signal_connect(G_OBJECT(buttonHPF),"clicked", G_CALLBACK( callBackFunc),"1");
+    g_signal_connect(G_OBJECT(buttonSRTN),"clicked", G_CALLBACK( callBackFunc),"2");
+    g_signal_connect(G_OBJECT(buttonRB),"clicked", G_CALLBACK( callBackFunc),"3");
+    gtk_box_pack_start(GTK_BOX(vbox_buttons), buttonHPF, TRUE, TRUE, 0);
+    gtk_box_pack_start(GTK_BOX(vbox_buttons), buttonSRTN, TRUE, TRUE, 0);
+    gtk_box_pack_start(GTK_BOX(vbox_buttons), buttonRB, TRUE, TRUE, 0);
+    gtk_widget_show_all(window); 
+  
+    gtk_main();
 
     // Read the input files.
     FILE *fptr;
@@ -20,17 +70,8 @@ int main(int argc, char * argv[])
     struct processInputData processTable[numberProcesses];
     for(int i=0; i<numberProcesses;i++){
         fscanf(fptr,"%d\t%d\t%d\t%d",&processTable[i].id,&processTable[i].arrivalTime,&processTable[i].runTime,&processTable[i].priority);
-        // printf("%d: %d %d %d %d\n",i,processTable[i].id,processTable[i].arrivalTime,processTable[i].runTime,processTable[i].priority);
     }
 
-    // Ask the user for the chosen scheduling algorithm and its parameters, if there are any.
-    int algorithmChosen;
-    printf("Choose The Algorithm: \n");
-    printf("1. Non-preemptive Highest Priority First (HPF) \n");
-    printf("2. Shortest Remaining time Next (SRTN)\n");
-    printf("3. Round Robin (RR) \n");
-    scanf("%d",&algorithmChosen);                             ///////////////////////////// choose q //////////////////////////////////////
-    // convert it to string to send to schedular
     char str_algorithmChosen[10];
     char str_numberProcesses[10];
     sprintf(str_algorithmChosen,"%d",algorithmChosen);
