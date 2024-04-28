@@ -11,7 +11,6 @@ int numberProcesses,finishedProcesses=0;
 bool isRunning =false;
 int pid ;
 
-
 /********************************************************
  ********************************************************
  *** IMPLEMENTATION OF HIGHEST PRIORITY FIRST SCHEDULER**
@@ -47,7 +46,6 @@ void HPF(){
             finishedProcesses++;
             Insert(processFinished,processRun);
         }
-
     }
      /**************************************************************************************
      *  Case there is no process running send fork a process on the top of the queue 
@@ -66,21 +64,22 @@ void HPF(){
             perror("Error in forking process;)\n");
         }
         else if (pid == 0){
-                /********* Process Code *********/
+            /********* Process Code *********/
             processRun->PID= getpid();
             printf("process %d is Created\n", processRun->PID);
-            printProcessInfo(firstProcess);
+            printProcessInfo(processRun);
             char *processCode;
             char processDirectory[256];
             if (getcwd(processDirectory, sizeof(processDirectory)) != NULL ) {
                  processCode = strcat(processDirectory,"/process.out");     
-            } else {
+            }else {
                 perror("Error in getting the working directory ");
             }
             execl(processCode,processCode,str_remainTime,NULL);
             exit(1);
         }else{
-            processRun->PID=pid;           
+            processRun->PID=pid;
+            msg2.mType=pid;
         }
         return;
     }
@@ -205,6 +204,10 @@ void SRTN(){
 int main(int argc, char * argv[])
 {
     initClk();  
+     int width = 600; // Width of the surface
+    int height = 600; // Height of the surface
+    cairo_surface_t *surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, width, height);
+    cairo_t *cr = cairo_create(surface);
     //TODO implement the scheduler :)
     //upon termination release the clock resources.
 
@@ -256,6 +259,11 @@ int main(int argc, char * argv[])
 
     }
     printList(processFinished);
+    draw_list(cr, processFinished);
+    cairo_surface_write_to_png(surface, "output.png");
+    cairo_destroy(cr);
+    cairo_surface_destroy(surface);
+  
 
      while (1) {
         printf("clock time : %d\n",getClk());

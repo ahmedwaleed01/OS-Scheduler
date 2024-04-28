@@ -1,5 +1,6 @@
 #include "headers.h"
 
+
 /* Modify this file as needed*/
 int remainingtime;
 
@@ -28,7 +29,7 @@ int main(int agrc, char * argv[])
         //     remainingtime --;
         //     printf("remaining time : %d\n",remainingtime);
         // }
-        printf("PROCESS ID: %d\n",getpid());
+        printf("PROCESS ID: %d time is %d\n",getpid(),getClk());
         msgrcv(msgId_SchedularProcess, &msg2, sizeof(msg2.decrement), getpid(), !IPC_NOWAIT);
         
         remainingtime --;

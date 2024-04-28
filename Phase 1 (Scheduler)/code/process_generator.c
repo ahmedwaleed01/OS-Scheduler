@@ -1,8 +1,10 @@
 #include "headers.h"
 #include <gtk/gtk.h> 
 
+
 void clearResources(int);
 int algorithmChosen;
+char quatum[100];
 void callBackFunc(GtkWidget* widget,gpointer data){
      const char *buttonLabel = (const char*)data;
     algorithmChosen=atoi(buttonLabel);
@@ -10,7 +12,11 @@ void callBackFunc(GtkWidget* widget,gpointer data){
     GtkWidget *window = GTK_WIDGET(gtk_widget_get_ancestor(widget, GTK_TYPE_WINDOW));
     gtk_widget_destroy(window);
 }
-
+void entry_changed(GtkEditable *editable, gpointer user_data)
+{
+    const gchar *text = gtk_entry_get_text(GTK_ENTRY(editable)); 
+    g_strlcpy(quatum, text, sizeof(quatum)); 
+}
 void destroy(GtkWidget* widget, gpointer data) 
 { 
     gtk_main_quit(); 
@@ -29,14 +35,16 @@ int main(int argc, char * argv[])
     GtkWidget *buttonHPF;
     GtkWidget *buttonSRTN;
     GtkWidget *buttonRB;
+    GtkWidget *entry; 
     gtk_init(&argc, &argv);
     window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
     gtk_window_set_title(GTK_WINDOW(window), "Scheduler App");
-    g_signal_connect(window, "destroy", G_CALLBACK(destroy), NULL); 
+    g_signal_connect(window, "destroy", G_CALLBACK(destroy), NULL);
     gtk_container_set_border_width(GTK_CONTAINER(window), 50);
+
     /************************************
-     *******Add GUI Components **********
-     ***********************************/   
+    *******Add GUI Components **********
+    ***********************************/
     vbox_main = gtk_box_new(GTK_ORIENTATION_VERTICAL, 5);
     gtk_container_add(GTK_CONTAINER(window), vbox_main);
     label = gtk_label_new("Choose the scheduler algorithm:");
@@ -46,14 +54,18 @@ int main(int argc, char * argv[])
     buttonHPF = gtk_button_new_with_label("HPF");
     buttonSRTN = gtk_button_new_with_label("SRTN");
     buttonRB = gtk_button_new_with_label("RB");
-    g_signal_connect(G_OBJECT(buttonHPF),"clicked", G_CALLBACK( callBackFunc),"1");
-    g_signal_connect(G_OBJECT(buttonSRTN),"clicked", G_CALLBACK( callBackFunc),"2");
-    g_signal_connect(G_OBJECT(buttonRB),"clicked", G_CALLBACK( callBackFunc),"3");
+    entry = gtk_entry_new(); // Create a new text entry widget
+    gtk_box_pack_start(GTK_BOX(vbox_main), entry, FALSE, FALSE, 0); // Add entry widget to the main vbox
+    g_signal_connect(G_OBJECT(buttonHPF), "clicked", G_CALLBACK(callBackFunc), "1");
+    g_signal_connect(G_OBJECT(buttonSRTN), "clicked", G_CALLBACK(callBackFunc), "2");
+    g_signal_connect(G_OBJECT(buttonRB), "clicked", G_CALLBACK(callBackFunc), "3");
+    g_signal_connect(G_OBJECT(entry), "changed", G_CALLBACK(entry_changed), NULL);
     gtk_box_pack_start(GTK_BOX(vbox_buttons), buttonHPF, TRUE, TRUE, 0);
     gtk_box_pack_start(GTK_BOX(vbox_buttons), buttonSRTN, TRUE, TRUE, 0);
     gtk_box_pack_start(GTK_BOX(vbox_buttons), buttonRB, TRUE, TRUE, 0);
-    gtk_widget_show_all(window); 
-  
+
+    gtk_widget_show_all(window);
+
     gtk_main();
 
     // Read the input files.
@@ -150,20 +162,24 @@ int main(int argc, char * argv[])
     printf("message queue Id between process generator and scheduler %d\n", msgId_GeneratorSchedular );
     // Send the information to the scheduler at the appropriate time.
     struct msgbuff msg;
-    msg.mType = 2;
+    msg.mType = 1;
     int sendVal;
     int countProcessSent=0;
+    int time=processDataTable[0].arrivalTime;
     while (countProcessSent < numberProcesses){             
          /************ if process Arrived send it to the scheduler  ****************/
-        if (processDataTable[countProcessSent].arrivalTime <= getClk()){
-            msg.process=processDataTable[countProcessSent];
-            printf("process :%d is sent\n",msg.process.id);
-            sendVal = msgsnd(msgId_GeneratorSchedular,&msg, sizeof(msg.process),!IPC_NOWAIT);
+        if(time <= getClk()) {
+            while (processDataTable[countProcessSent].arrivalTime == time){
+                msg.process=processDataTable[countProcessSent];
+                printf("process :%d is sent\n",msg.process.id);
+                sendVal = msgsnd(msgId_GeneratorSchedular,&msg, sizeof(msg.process),!IPC_NOWAIT);
             if(sendVal == -1){
                 perror("Error in sending process to the Scheduler");
                 exit(-1);
             }
-            countProcessSent++;
+                countProcessSent++;
+            }
+            time++;
         }
     }
     printf("Process Generator Finsihed in sending Processes to the Scheduler\n");
