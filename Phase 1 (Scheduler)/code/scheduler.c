@@ -200,7 +200,73 @@ void SRTN(){
             return;
     }
 }
+// // Function to handle output files (scheduler.log and scheduler.perf)
+// void handleOutputFiles(struct List *processFinished) {
+//     // Open log file for writing
+//     FILE *logFile = fopen("scheduler.log", "w");
+//     if (logFile == NULL) {
+//         perror("Error opening log file");
+//         exit(EXIT_FAILURE);
+//     }
 
+//     // Open performance file for writing
+//     FILE *perfFile = fopen("scheduler.perf", "w");
+//     if (perfFile == NULL) {
+//         perror("Error opening performance file");
+//         exit(EXIT_FAILURE);
+//     }
+
+//     // Variables for performance metrics calculation
+//     int totalProcesses = 0;
+//     int totalExecutionTime = 0;
+//     int totalWaitingTime = 0;
+//     int totalTurnaroundTime = 0;
+//     int squaredWTA = 0;
+
+//     // Process each finished process
+//     struct Node *current = processFinished->head;
+//     while (current != NULL) {
+        
+//         struct processData *process = current->process;
+
+//         // Calculate process metrics
+//         int turnaroundTime = process->finishedTime - process->arrivalTime;
+//         int weightedTurnaroundTime = turnaroundTime / process->runTime; //int weightedTurnaroundTime = turnaroundTime * process->priority;
+//         int waitingTime = turnaroundTime - process->executionTime;
+
+//         // Write process events to log file
+//         fprintf(logFile, "At time %d process %d started arr %d total %d remain %d wait %d\n", process->startTime, process->pid, process->arrivalTime, process->executionTime, process->remainingTime, waitingTime);
+//         fprintf(logFile, "At time %d process %d finished arr %d total %d remain %d wait %d TA %d WTA %.2f\n", process->finishedTime, process->pid, process->arrivalTime, process->executionTime, 0, waitingTime, turnaroundTime, (double)weightedTurnaroundTime / process->executionTime);
+
+//         // Update total metrics
+//         totalProcesses++;
+//         totalExecutionTime += process->executionTime;
+//         totalWaitingTime += waitingTime;
+//         totalTurnaroundTime += turnaroundTime;
+//         squaredWTA += weightedTurnaroundTime * weightedTurnaroundTime;
+
+//         // Move to the next process
+//         current = current->next;
+//     }
+
+//     // Calculate performance metrics
+//     double cpuUtilization = (double)totalExecutionTime / totalTurnaroundTime * 100;
+//     double avgWTA = (double)totalTurnaroundTime / totalProcesses;
+//     double avgWaiting = (double)totalWaitingTime / totalProcesses;
+//     double stdWTA = sqrt((double)squaredWTA / totalProcesses - avgWTA * avgWTA);
+
+//     // Write performance metrics to perf file
+
+    
+//     fprintf(perfFile, "CPU utilization = %.2f%%\n", cpuUtilization);
+//     fprintf(perfFile, "Avg WTA = %.2f\n", avgWTA);
+//     fprintf(perfFile, "Avg Waiting = %.2f\n", avgWaiting);
+//     fprintf(perfFile, "Std WTA = %.2f\n", stdWTA);
+
+//     // Close log and perf files
+//     fclose(logFile);
+//     fclose(perfFile);
+// }
 
 int main(int argc, char * argv[])
 {
@@ -256,6 +322,9 @@ int main(int argc, char * argv[])
 
     }
     printList(processFinished);
+
+    //     // Handle output files
+    // handleOutputFiles(processFinished);
 
      while (1) {
         printf("clock time : %d\n",getClk());
