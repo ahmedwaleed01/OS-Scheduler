@@ -199,6 +199,100 @@ void SRTN(){
             return;
     }
 }
+
+/********************************************************
+ ********************************************************
+ *** IMPLEMENTATION OF ROUND ROBIN SCHEDULER ************
+ ********************************************************
+ ********************************************************/
+
+void RB(int quantum)
+{
+    printf("ROUND ROBIN");
+    while (msgrcv(msgId_GeneratorSchedular, &msg, sizeof(msg.process), 0, IPC_NOWAIT) != -1)
+    {
+        printf("time :%d\n", getClk());
+        struct processData *process = (struct processData *)malloc(sizeof(msg.process));
+        *process = msg.process;
+        strcpy(process->state, "ready");
+        enqueue(processQueue, process);
+        printProcessInfo(process);
+        numberProcesses--;
+    }
+
+   if(isRunning)
+   {
+    msg2.mType = processRun->PID;
+    printf("///////////////////PROCEESSS REMAIN TIMEEEEEE: %d   %d\n", processRun->remainingTime, msg2.mType);
+    int sendVal = msgsnd(msgId_SchedularProcess, &msg2, sizeof(msg2.decrement), !IPC_NOWAIT);
+    processRun->remainingTime -= quantum;
+    printProcessInfo(processRun);
+    if (processRun->remainingTime<= 0)
+    {
+        waitpid(msg2.mType, NULL, 0);
+        isRunning = false;
+        printf("finished process %d\n", getClk());
+        sprintf(processRun->state, "finished");
+        processRun->finishedTime = getClk();
+        finishedProcesses++;
+        printf("NUMBER FINISHED PROCESSSSSSSSS: %d\n", finishedProcesses);
+        Insert(processFinished, processRun);
+    }
+    else
+    {
+        strcpy(processRun->state, "stopped");
+        Insert(processQueue, processRun);
+        isRunning = false;
+    }
+   }
+
+   if(!isRunning)
+   {
+    if(!isEmpty(processQueue))
+    {
+        processRun = dequeue(processQueue);
+        if (processRun == NULL)
+            return;
+        isRunning = true;
+        strcpy(processRun->state, "started");
+        char str_remainTime[10];
+        sprintf(str_remainTime, "%d", processRun->remainingTime);
+
+        pid = fork();
+
+        if (pid == -1)
+        {
+            perror("Error in forking process;)\n");
+        }
+        else if (pid == 0)
+        {
+            /********* Process Code *********/
+            processRun->PID = getpid();
+            printf("process %d is Created\n", processRun->PID);
+            printProcessInfo(processRun);
+            char *processCode;
+            char processDirectory[256];
+            if (getcwd(processDirectory, sizeof(processDirectory)) != NULL)
+            {
+                processCode = strcat(processDirectory, "/process.out");
+            }
+            else
+            {
+                perror("Error in getting the working directory ");
+            }
+            execl(processCode, processCode, str_remainTime, NULL);
+            exit(1);
+        }
+        else
+        {
+            processRun->PID = pid;
+            msg2.mType = pid;
+        }
+        return;
+    
+    }
+   }
+}
 // // Function to handle output files (scheduler.log and scheduler.perf)
 // void handleOutputFiles(struct List *processFinished) {
 //     // Open log file for writing
