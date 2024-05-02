@@ -88,7 +88,7 @@ struct processData{
     int turnAroundTime;
     int finishedTime;
     int waitingTime;
-    int weightedTurnAroundTime;
+    float weightedTurnAroundTime;
     char state[10];
     int quantum;
     int startTime;

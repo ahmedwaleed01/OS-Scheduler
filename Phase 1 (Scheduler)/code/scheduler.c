@@ -16,7 +16,7 @@ void Log(struct processData *process)
 {
     if (process)
     {
-        if (!strcmp(process->processState, "finished"))
+        if (!strcmp(process->state, "finished"))
         {
             fprintf(LogFile, "At\ttime\t%d\tprocess\t%d\t%s\tarr\t%d\ttotal\t%d\tremain\t%d\twait\t%d\tTA\t%d\tWTA\t%.2f\n", getClk(), process->id, process->state, process->arrivalTime, process->runTime, process->remainingTime, process->waitingTime, process->turnAroundTime, process->weightedTurnAroundTime);
         }
@@ -70,6 +70,8 @@ void HPF()
             sprintf(processRun->state, "finished");
             processRun->finishedTime = getClk();
             finishedProcesses++;
+            processRun->turnAroundTime=processRun->finishedTime -processRun->arrivalTime;
+            processRun->weightedTurnAroundTime=(float)processRun->turnAroundTime/processRun->runTime;
             Log(processRun);
             Insert(processFinished, processRun);
         }
@@ -85,6 +87,7 @@ void HPF()
             return;
         isRunning = true;
         strcpy(processRun->state, "started");
+        processRun->waitingTime=getClk()-processRun->arrivalTime;
         char str_remainTime[10];
         sprintf(str_remainTime, "%d", processRun->remainingTime);
 
@@ -98,7 +101,8 @@ void HPF()
         {
             /********* Process Code *********/
             processRun->PID = getpid();
-            processRun->startTime=getClk();
+            // processRun->startTime=getClk();
+            processRun->waitingTime=getClk()-processRun->arrivalTime;
             printf("process %d is Created\n", processRun->PID);
             printProcessInfo(processRun);
             char *processCode;
@@ -155,6 +159,8 @@ void SRTN()
             sprintf(processRun->state, "finished");
             processRun->finishedTime = getClk();
             finishedProcesses++;
+            processRun->turnAroundTime=processRun->finishedTime -processRun->arrivalTime;
+            processRun->weightedTurnAroundTime=(float)processRun->turnAroundTime/processRun->runTime;
             printf("NUMBER FINISHED PROCESSSSSSSSS: %d\n", finishedProcesses);
             Insert(processFinished, processRun);
         }
@@ -176,6 +182,7 @@ void SRTN()
                 return;
             isRunning = true;
             strcpy(processRun->state, "started");
+            processRun->waitingTime=getClk()-processRun->arrivalTime;
             char str_remainTime[10];
             sprintf(str_remainTime, "%d", processRun->remainingTime);
 
@@ -221,6 +228,7 @@ void SRTN()
         if (processRun == NULL)
             return;
         strcpy(processRun->state, "started");
+        processRun->waitingTime=getClk()-processRun->arrivalTime;
         char str_remainTime[10];
         sprintf(str_remainTime, "%d", processRun->remainingTime);
 
@@ -300,6 +308,8 @@ void RB(int quantumValue)
             sprintf(processRun->state, "finished");
             processRun->finishedTime = getClk();
             finishedProcesses++;
+            processRun->turnAroundTime=processRun->finishedTime -processRun->arrivalTime;
+            processRun->weightedTurnAroundTime=(float)processRun->turnAroundTime/processRun->runTime;
             printf("NUMBER FINISHED PROCESSSSSSSSS: %d\n", finishedProcesses);
             Insert(processFinished, processRun);
         }
@@ -321,7 +331,7 @@ void RB(int quantumValue)
                 return;
             isRunning = true;
             strcpy(processRun->state, "started");
-
+            processRun->waitingTime=getClk()-processRun->arrivalTime;   
             char str_remainTime[10];
             sprintf(str_remainTime, "%d", processRun->remainingTime);
 
