@@ -3,6 +3,7 @@ int msgId_GeneratorSchedular, recVal_GeneratorSchedular, msgId_SchedularProcess,
 struct List *processQueue;
 struct List *processFinished;
 struct List *processStoppedQueue;
+struct List *calcQueue = createPriorityQueue();
 struct msgbuff msg;
 struct msgBuff1 msg2;
 struct processData *processRun = NULL;
@@ -11,6 +12,11 @@ int numberProcesses, finishedProcesses = 0;
 bool isRunning = false;
 int pid;
 FILE *LogFile; // this is the log file
+FILE *perfFile;
+int countActive=0;
+bool firstProcess = true;
+int startTime = 0;
+int endTime = 0;
 
 void Log(struct processData *process)
 {
@@ -41,6 +47,11 @@ void HPF()
 {
     while (msgrcv(msgId_GeneratorSchedular, &msg, sizeof(msg.process), 0, IPC_NOWAIT) != -1)
     {
+        if (firstProcess)
+        {
+            startTime = getClk();
+            firstProcess = false;
+        }
         printf("time :%d\n", getClk());
         struct processData *process = (struct processData *)malloc(sizeof(msg.process));
         *process = msg.process;
@@ -56,6 +67,7 @@ void HPF()
      * *************************************************************************************/
     if (isRunning)
     {
+        countActive++;
         msg2.mType = processRun->PID;
         int sendVal = msgsnd(msgId_SchedularProcess, &msg2, sizeof(msg2.decrement), !IPC_NOWAIT);
         printf("***************************message recieverd   %d\n", msg2.mType);
@@ -69,10 +81,12 @@ void HPF()
             printf("finished process %d\n", getClk());
             sprintf(processRun->state, "finished");
             processRun->finishedTime = getClk();
+            endTime = getClk();
             finishedProcesses++;
             processRun->turnAroundTime=processRun->finishedTime -processRun->arrivalTime;
             processRun->weightedTurnAroundTime=(float)processRun->turnAroundTime/processRun->runTime;
             Log(processRun);
+            enqueue(calcQueue,processRun);
             Insert(processFinished, processRun);
         }
     }
@@ -136,6 +150,11 @@ void SRTN()
 {
     while (msgrcv(msgId_GeneratorSchedular, &msg, sizeof(msg.process), 0, IPC_NOWAIT) != -1)
     {
+        if (firstProcess)
+        {
+            startTime = getClk();
+            firstProcess = false;
+        }
         printf("time :%d\n", getClk());
         struct processData *process = (struct processData *)malloc(sizeof(msg.process));
         *process = msg.process;
@@ -146,10 +165,12 @@ void SRTN()
     }
     if (isRunning)
     {
+        countActive++;
         msg2.mType = processRun->PID;
         printf("///////////////////PROCEESSS REMAIN TIMEEEEEE: %d   %d\n", processRun->remainingTime, msg2.mType);
         int sendVal = msgsnd(msgId_SchedularProcess, &msg2, sizeof(msg2.decrement), !IPC_NOWAIT);
         processRun->remainingTime--;
+        Log(processRun);
         printProcessInfo(processRun);
         if (processRun->remainingTime == 0)
         {
@@ -158,9 +179,12 @@ void SRTN()
             printf("finished process %d\n", getClk());
             sprintf(processRun->state, "finished");
             processRun->finishedTime = getClk();
+            endTime = getClk();
+            enqueue(calcQueue,processRun);
             finishedProcesses++;
             processRun->turnAroundTime=processRun->finishedTime -processRun->arrivalTime;
             processRun->weightedTurnAroundTime=(float)processRun->turnAroundTime/processRun->runTime;
+            Log(processRun);
             printf("NUMBER FINISHED PROCESSSSSSSSS: %d\n", finishedProcesses);
             Insert(processFinished, processRun);
         }
@@ -199,6 +223,7 @@ void SRTN()
                 processRun->startTime=getClk();
                 printf("process %d is Created\n", processRun->PID);
                 printProcessInfo(processRun);
+                Log(processRun);
                 char *processCode;
                 char processDirectory[256];
                 if (getcwd(processDirectory, sizeof(processDirectory)) != NULL)
@@ -245,6 +270,7 @@ void SRTN()
             processRun->startTime=getClk();
             printf("process %d is Created\n", processRun->PID);
             printProcessInfo(processRun);
+            Log(processRun);
             char *processCode;
             char processDirectory[256];
             if (getcwd(processDirectory, sizeof(processDirectory)) != NULL)
@@ -282,6 +308,11 @@ void RB(int quantumValue)
     printf("ROUND ROBIN\n");
     while (msgrcv(msgId_GeneratorSchedular, &msg, sizeof(msg.process), 0, IPC_NOWAIT) != -1)
     {
+        if (firstProcess)
+        {
+            startTime = getClk();
+            firstProcess = false;
+        }
         printf("time :%d\n", getClk());
         struct processData *process = (struct processData *)malloc(sizeof(msg.process));
         *process = msg.process;
@@ -289,17 +320,20 @@ void RB(int quantumValue)
         strcpy(process->state, "ready");
         Insert(processQueue, process);
         printProcessInfo(process);
+        //Log(processRun);
         numberProcesses--;
     }
 
     if (isRunning)
     {
+        countActive++;
         msg2.mType = processRun->PID;
         printf("///////////////////PROCEESSS REMAIN TIMEEEEEE: %d   %d\n", processRun->remainingTime, msg2.mType);
         int sendVal = msgsnd(msgId_SchedularProcess, &msg2, sizeof(msg2.decrement), !IPC_NOWAIT);
         processRun->remainingTime--;
         processRun->quantum--;
         printProcessInfo(processRun);
+        Log(processRun);
         if (processRun->remainingTime == 0)
         {
             waitpid(msg2.mType, NULL, 0);
@@ -307,9 +341,12 @@ void RB(int quantumValue)
             printf("finished process %d\n", getClk());
             sprintf(processRun->state, "finished");
             processRun->finishedTime = getClk();
+            endTime = getClk();
             finishedProcesses++;
             processRun->turnAroundTime=processRun->finishedTime -processRun->arrivalTime;
             processRun->weightedTurnAroundTime=(float)processRun->turnAroundTime/processRun->runTime;
+            enqueue(calcQueue,processRun);
+            Log(processRun);
             printf("NUMBER FINISHED PROCESSSSSSSSS: %d\n", finishedProcesses);
             Insert(processFinished, processRun);
         }
@@ -319,6 +356,7 @@ void RB(int quantumValue)
             strcpy(processRun->state, "ready");
             Insert(processQueue, processRun); 
             isRunning = false; 
+            //Log(processRun); // idk if that is right????
         }
     }
 
@@ -348,6 +386,7 @@ void RB(int quantumValue)
                 processRun->startTime=getClk();
                 printf("process %d is Created\n", processRun->PID);
                 printProcessInfo(processRun);
+                Log(processRun);
                 char *processCode;
                 char processDirectory[256];
                 processRun->quantum = quantumValue;
@@ -455,7 +494,45 @@ int main(int argc, char *argv[])
         fclose(LogFile);
         printList(processFinished);
         //handleOutputFiles(processFinished);
+        // create a .perf file
+        perfFile = fopen("scheduler.perf", "w");
+        //
+        float cpuUtil = ((float)countActive / (endTime - startTime)) * 100;
+        float avgWaitTime = 0;
+        float avgWTA = 0;
+        float stdWTA = 0;
+        int waitingTimeSum;
+        float sumWTASquared = 0;
+        float weightedTASum = 0;
+        int processesCount = calcQueue->count;
+        for (int i = 0; i < processesCount; i++)
+        {
+            struct processData *calcProcess = dequeue(calcQueue);
+            calcProcess->turnAroundTime = calcProcess->finishedTime - calcProcess->arrivalTime;
+            calcProcess->waitingTime = calcProcess->turnAroundTime - calcProcess->runTime;
+            calcProcess->weightedTurnAroundTime = (float)calcProcess->turnAroundTime / calcProcess->runTime;
+            waitingTimeSum += calcProcess->waitingTime;
+            weightedTASum += calcProcess->weightedTurnAroundTime;
+            enqueue(calcQueue,calcProcess);
+        }
+        avgWaitTime = (float)waitingTimeSum / processesCount;
+        avgWTA = (float)weightedTASum / processesCount;
 
+        for (int i = 0; i < processesCount; i++)
+        {
+            struct processData *calcProcess = dequeue(calcQueue);
+            float difference = calcProcess->weightedTurnAroundTime - avgWTA;
+            sumWTASquared += (difference * difference);
+        }
+
+        float meanWTASquared = sumWTASquared / procressCount;
+        stdWTA = sqrt(meanWTASquared);
+        fprintf(perfFile, "CPU\tutlilization\t=\t%.2f%%\n", cpuUtil);
+        fprintf(perfFile, "Avg\tWTA\t=\t%.2f\n", avgWTA);
+        fprintf(perfFile, "Avg\tWaiting\t=\t%.2f\n", avgWaitTime);
+        fprintf(perfFile, "Std\tWTA\t=\t%.2f\n", stdWTA);
+        fclose(perfFile);
+        //
         /******Draw The Output Image********/
         draw_list(cr, processFinished);
         cairo_surface_write_to_png(surface, "output.png");
