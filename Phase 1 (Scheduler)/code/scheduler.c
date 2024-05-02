@@ -56,6 +56,7 @@ void HPF()
      * *************************************************************************************/
     if (!isRunning)
     {
+        
         processRun = dequeue(processQueue);
         if (processRun == NULL)
             return;
@@ -74,8 +75,9 @@ void HPF()
         {
             /********* Process Code *********/
             processRun->PID = getpid();
+            processRun->startTime=getClk();
             printf("process %d is Created\n", processRun->PID);
-            printProcessInfo(firstProcess);
+            printProcessInfo(processRun);
             char *processCode;
             char processDirectory[256];
             if (getcwd(processDirectory, sizeof(processDirectory)) != NULL)
@@ -92,6 +94,7 @@ void HPF()
         else
         {
             processRun->PID = pid;
+            msg2.mType = pid;
         }
         return;
     }
@@ -162,6 +165,7 @@ void SRTN()
             {
                 /********* Process Code *********/
                 processRun->PID = getpid();
+                processRun->startTime=getClk();
                 printf("process %d is Created\n", processRun->PID);
                 printProcessInfo(processRun);
                 char *processCode;
@@ -206,6 +210,7 @@ void SRTN()
         {
             /********* Process Code *********/
             processRun->PID = getpid();
+            processRun->startTime=getClk();
             printf("process %d is Created\n", processRun->PID);
             printProcessInfo(processRun);
             char *processCode;
@@ -242,7 +247,7 @@ void SRTN()
 
 void RB(int quantumValue)
 {
-    printf("ROUND ROBIN");
+    printf("ROUND ROBIN\n");
     while (msgrcv(msgId_GeneratorSchedular, &msg, sizeof(msg.process), 0, IPC_NOWAIT) != -1)
     {
         printf("time :%d\n", getClk());
@@ -250,7 +255,7 @@ void RB(int quantumValue)
         *process = msg.process;
         process->quantum = quantumValue;
         strcpy(process->state, "ready");
-        enqueue(processQueue, process);
+        Insert(processQueue, process);
         printProcessInfo(process);
         numberProcesses--;
     }
@@ -304,8 +309,9 @@ void RB(int quantumValue)
             }
             else if (pid == 0)
             {
-                /********* Process Code *********/
+                    /********* Process Code *********/
                 processRun->PID = getpid();
+                processRun->startTime=getClk();
                 printf("process %d is Created\n", processRun->PID);
                 printProcessInfo(processRun);
                 char *processCode;
@@ -333,11 +339,17 @@ void RB(int quantumValue)
 }
 
 
-    int main(int argc, char *argv[])
+int main(int argc, char *argv[])
     {
         initClk();
         // TODO implement the scheduler :)
         // upon termination release the clock resources.
+
+        /***Configure Output Image***/
+        int width = 600;                    // Width of the surface
+        int height = 600;                   // Height of the surface
+        cairo_surface_t *surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, width, height);
+        cairo_t *cr = cairo_create(surface);
 
         // Create message queue between process generator and scheduler
         key_t key_id;
@@ -362,13 +374,17 @@ void RB(int quantumValue)
 
         int schedulerAlgorithm = atoi(argv[1]);
         numberProcesses = atoi(argv[2]);
-
+        int quantumValue = atoi(argv[3]);
+        
         if (schedulerAlgorithm == 1)
             processQueue = createPriorityQueue();
         else if (schedulerAlgorithm == 2)
         {
             processQueue = createQueuePirorityRemainTime();
             processStoppedQueue = createQueuePirorityRemainTime();
+        }else if (schedulerAlgorithm == 3){
+            processQueue= createLinkedList();
+            processStoppedQueue=createLinkedList();
         }
 
         processFinished = createPriorityQueue();
@@ -383,25 +399,25 @@ void RB(int quantumValue)
             }
             else if (schedulerAlgorithm == 2)
             {
-                // //call SRTN
-                // SRTN();
-                RB(1);
+                //call SRTN
+                SRTN();
                 sleep(1);
             }
             else if (schedulerAlgorithm == 3)
             {
                 // call RB
-                RB(1);
+                RB(quantumValue);
                 sleep(1);
             }
         }
         printList(processFinished);
+        handleOutputFiles(processFinished);
 
-        while (1)
-        {
-            printf("clock time : %d\n", getClk());
-            sleep(2);
-        }
+        /******Draw The Output Image********/
+        draw_list(cr, processFinished);
+        cairo_surface_write_to_png(surface, "output.png");
+        cairo_destroy(cr);
+        cairo_surface_destroy(surface);
 
         destroyClk(true);
     }

@@ -4,7 +4,7 @@
 
 void clearResources(int);
 int algorithmChosen;
-char quatum[100];
+char quatum[100]="1";
 void callBackFunc(GtkWidget* widget,gpointer data){
      const char *buttonLabel = (const char*)data;
     algorithmChosen=atoi(buttonLabel);
@@ -36,6 +36,7 @@ int main(int argc, char * argv[])
     GtkWidget *buttonSRTN;
     GtkWidget *buttonRB;
     GtkWidget *entry; 
+    GtkWidget *labelQ;
     gtk_init(&argc, &argv);
     window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
     gtk_window_set_title(GTK_WINDOW(window), "Scheduler App");
@@ -54,8 +55,10 @@ int main(int argc, char * argv[])
     buttonHPF = gtk_button_new_with_label("HPF");
     buttonSRTN = gtk_button_new_with_label("SRTN");
     buttonRB = gtk_button_new_with_label("RB");
-    entry = gtk_entry_new(); // Create a new text entry widget
-    gtk_box_pack_start(GTK_BOX(vbox_main), entry, FALSE, FALSE, 0); // Add entry widget to the main vbox
+    entry = gtk_entry_new();
+    labelQ = gtk_label_new("Enter the Quantum value in Case RB :)");
+    gtk_box_pack_start(GTK_BOX(vbox_main), labelQ, FALSE, FALSE, 0); 
+    gtk_box_pack_start(GTK_BOX(vbox_main), entry, FALSE, FALSE, 0); 
     g_signal_connect(G_OBJECT(buttonHPF), "clicked", G_CALLBACK(callBackFunc), "1");
     g_signal_connect(G_OBJECT(buttonSRTN), "clicked", G_CALLBACK(callBackFunc), "2");
     g_signal_connect(G_OBJECT(buttonRB), "clicked", G_CALLBACK(callBackFunc), "3");
@@ -112,7 +115,7 @@ int main(int argc, char * argv[])
 
     if(pidScheduler == 0){ 
                 /**** Scheduler Code ****/
-        execl(schedularCode,schedularCode,str_algorithmChosen,str_numberProcesses, NULL);
+        execl(schedularCode,schedularCode,str_algorithmChosen,str_numberProcesses,quatum, NULL);
         perror("Error executing scheduler!");
         exit(-1);
     }
