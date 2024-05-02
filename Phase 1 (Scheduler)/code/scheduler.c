@@ -13,10 +13,13 @@ bool isRunning = false;
 int pid;
 FILE *LogFile; // this is the log file
 FILE *perfFile;
-int countActive=0;
+int countActive=1;
 bool isFirstProcess = true;
 int startTime = 0;
 int endTime = 0;
+union Semun semun;
+int sem_sync = -1;
+
 
 float square_root(float num) {
     float x = num;
@@ -60,11 +63,7 @@ void HPF()
 {
     while (msgrcv(msgId_GeneratorSchedular, &msg, sizeof(msg.process), 0, IPC_NOWAIT) != -1)
     {
-        if (isFirstProcess)
-        {
-            startTime = getClk();
-            isFirstProcess = false;
-        }
+       
         printf("time :%d\n", getClk());
         struct processData *process = (struct processData *)malloc(sizeof(msg.process));
         *process = msg.process;
@@ -162,11 +161,11 @@ void SRTN()
 {
     while (msgrcv(msgId_GeneratorSchedular, &msg, sizeof(msg.process), 0, IPC_NOWAIT) != -1)
     {
-        if (isFirstProcess)
-        {
-            startTime = getClk();
-            isFirstProcess = false;
-        }
+        // if (isFirstProcess)
+        // {
+        //     startTime = getClk();
+        //     isFirstProcess = false;
+        // }
         printf("time :%d\n", getClk());
         struct processData *process = (struct processData *)malloc(sizeof(msg.process));
         *process = msg.process;
@@ -320,11 +319,11 @@ void RB(int quantumValue)
     printf("ROUND ROBIN\n");
     while (msgrcv(msgId_GeneratorSchedular, &msg, sizeof(msg.process), 0, IPC_NOWAIT) != -1)
     {
-        if (isFirstProcess)
-        {
-            startTime = getClk();
-            isFirstProcess = false;
-        }
+        // if (isFirstProcess)
+        // {
+        //     startTime = getClk();
+        //     isFirstProcess = false;
+        // }
         printf("time :%d\n", getClk());
         struct processData *process = (struct processData *)malloc(sizeof(msg.process));
         *process = msg.process;
@@ -464,6 +463,10 @@ int main(int argc, char *argv[])
         printf("message queue Id between process generator and scheduler %d\n", msgId_GeneratorSchedular);
         printf("message queue Id between scheduler and processes %d\n", msgId_SchedularProcess);
 
+        int sem_sync = -1;
+        key_t key_sem_sync = ftok("keyfile", 80);
+        sem_sync = semget(key_sem_sync,1,0666|IPC_CREAT);
+
         int schedulerAlgorithm = atoi(argv[1]);
         numberProcesses = atoi(argv[2]);
         int quantumValue = atoi(argv[3]);
@@ -486,18 +489,21 @@ int main(int argc, char *argv[])
             if (schedulerAlgorithm == 1)
             {
                 // call HPF
+                down(sem_sync);
                 HPF();
                 sleep(1);
             }
             else if (schedulerAlgorithm == 2)
             {
                 //call SRTN
+                down(sem_sync);
                 SRTN();
                 sleep(1);
             }
             else if (schedulerAlgorithm == 3)
             {
                 // call RB
+                down(sem_sync);
                 RB(quantumValue);
                 sleep(1);
             }
@@ -513,7 +519,6 @@ int main(int argc, char *argv[])
         // create a .perf file
         // calcQueue = createPriorityQueue();
         perfFile = fopen("scheduler.perf", "w");
-        //
         float cpuUtil = ((float)countActive / (endTime - startTime)) * 100;
         float avgWaitTime = 0;
         float avgWTA = 0;

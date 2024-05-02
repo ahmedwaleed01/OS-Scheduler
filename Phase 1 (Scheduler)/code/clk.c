@@ -8,11 +8,14 @@
 #include "headers.h"
 
 int shmid;
+union Semun semun;
+int sem_sync = -1;
 
 /* Clear the resources before exit */
 void cleanup(int signum)
 {
     shmctl(shmid, IPC_RMID, NULL);
+    semctl(sem_sync,0,IPC_RMID,semun);
     printf("Clock terminating!\n");
     exit(0);
 }
@@ -36,10 +39,18 @@ int main(int argc, char * argv[])
         perror("Error in attaching the shm in clock!");
         exit(-1);
     }
+
+    key_t key_sem_sync = ftok("keyfile", 80);
+    sem_sync = semget(key_sem_sync,1,0666|IPC_CREAT);
     *shmaddr = clk; /* initialize shared memory */
     while (1)
     {
+        int check =1;
         sleep(1);
-        (*shmaddr)++;
+        if(check){
+             (*shmaddr)++;
+        }
+        check=up(sem_sync);
+       
     }
 }

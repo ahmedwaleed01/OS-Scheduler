@@ -13,6 +13,7 @@
 #include <string.h>
 #include <cairo.h>
 #include <math.h>
+#include <sys/sem.h>
 
 typedef short bool;
 #define true 1
@@ -284,6 +285,46 @@ struct msgBuff1 {
     int mType;
     int decrement;
 };
+
+/* arg for semctl system calls. */
+union Semun
+{
+    int val;               /* Value for SETVAL */
+    struct semid_ds *buf;  /* Buffer for IPC_STAT, IPC_SET */
+    unsigned short *array; /* Array for GETALL, SETALL */
+    struct seminfo *__buf; /* Buffer for IPC_INFO (Linux-specific) */
+};
+
+void down(int sem)
+{
+    struct sembuf op;
+
+    op.sem_num = 0;
+    op.sem_op = -1;
+    op.sem_flg = !IPC_NOWAIT;
+
+    if (semop(sem, &op, 1) == -1)
+    {
+        perror("Error in down()");
+        exit(-1);
+    }
+}
+
+int up(int sem)
+{
+    struct sembuf op;
+
+    op.sem_num = 0;
+    op.sem_op = 1;
+    op.sem_flg = !IPC_NOWAIT;
+
+    if (semop(sem, &op, 1) == -1)
+    {
+        perror("Error in up()");
+        exit(-1);
+    }
+    return 1;
+}
 
 
 /*
