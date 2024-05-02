@@ -10,6 +10,26 @@ struct processData *firstProcess = NULL;
 int numberProcesses, finishedProcesses = 0;
 bool isRunning = false;
 int pid;
+FILE *LogFile; // this is the log file
+
+void Log(struct processData *process)
+{
+    if (process)
+    {
+        if (!strcmp(process->processState, "finished"))
+        {
+            fprintf(LogFile, "At\ttime\t%d\tprocess\t%d\t%s\tarr\t%d\ttotal\t%d\tremain\t%d\twait\t%d\tTA\t%d\tWTA\t%.2f\n", getClk(), process->id, process->state, process->arrivalTime, process->runTime, process->remainingTime, process->waitingTime, process->turnAroundTime, process->weightedTurnAroundTime);
+        }
+        else
+        {
+            fprintf(LogFile, "At\ttime\t%d\tprocess\t%d\t%s\tarr\t%d\ttotal\t%d\tremain\t%d\twait\t%d\n", getClk(), process->id, process->state, process->arrivalTime, process->runTime, process->remainingTime, process->waitingTime);
+        }
+    }
+    else
+    {
+        return;
+    }
+}
 
 /********************************************************
  ********************************************************
@@ -25,6 +45,7 @@ void HPF()
         struct processData *process = (struct processData *)malloc(sizeof(msg.process));
         *process = msg.process;
         strcpy(process->state, "ready");
+        //Log(process);
         enqueue(processQueue, process);
         printProcessInfo(process);
         numberProcesses--;
@@ -40,6 +61,7 @@ void HPF()
         printf("***************************message recieverd   %d\n", msg2.mType);
         processRun->remainingTime--;
         printProcessInfo(processRun);
+        Log(processRun);
         if (processRun->remainingTime == 0)
         {
             waitpid(msg2.mType, NULL, 0);
@@ -48,6 +70,7 @@ void HPF()
             sprintf(processRun->state, "finished");
             processRun->finishedTime = getClk();
             finishedProcesses++;
+            Log(processRun);
             Insert(processFinished, processRun);
         }
     }
@@ -96,6 +119,7 @@ void HPF()
             processRun->PID = pid;
             msg2.mType = pid;
         }
+        Log(processRun);
         return;
     }
 }
@@ -360,6 +384,14 @@ int main(int argc, char *argv[])
             perror("Error in create message queue:)");
             exit(-1);
         }
+        // create a log file
+        LogFile = fopen("scheduler.log", "w");
+        if (LogFile == NULL)
+        {
+            printf("Error opening the file.\n");
+            return 1;
+        }
+        fprintf(LogFile, "#At\ttime\tx\tprocess\ty\tstate\tarr\tw\ttotal\tz\tremain\ty\twait\tk\n");
         // Create message queue between scheduler and processes
         key_t key_id2;
         key_id2 = ftok("keyfile", 75);
@@ -410,8 +442,9 @@ int main(int argc, char *argv[])
                 sleep(1);
             }
         }
+        fclose(LogFile);
         printList(processFinished);
-        handleOutputFiles(processFinished);
+        //handleOutputFiles(processFinished);
 
         /******Draw The Output Image********/
         draw_list(cr, processFinished);
