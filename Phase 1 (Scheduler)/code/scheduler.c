@@ -3,7 +3,7 @@ int msgId_GeneratorSchedular, recVal_GeneratorSchedular, msgId_SchedularProcess,
 struct List *processQueue;
 struct List *processFinished;
 struct List *processStoppedQueue;
-struct List *calcQueue = createPriorityQueue();
+struct List *calcQueue;
 struct msgbuff msg;
 struct msgBuff1 msg2;
 struct processData *processRun = NULL;
@@ -14,7 +14,7 @@ int pid;
 FILE *LogFile; // this is the log file
 FILE *perfFile;
 int countActive=0;
-bool firstProcess = true;
+bool isFirstProcess = true;
 int startTime = 0;
 int endTime = 0;
 
@@ -47,10 +47,10 @@ void HPF()
 {
     while (msgrcv(msgId_GeneratorSchedular, &msg, sizeof(msg.process), 0, IPC_NOWAIT) != -1)
     {
-        if (firstProcess)
+        if (isFirstProcess)
         {
             startTime = getClk();
-            firstProcess = false;
+            isFirstProcess = false;
         }
         printf("time :%d\n", getClk());
         struct processData *process = (struct processData *)malloc(sizeof(msg.process));
@@ -150,10 +150,10 @@ void SRTN()
 {
     while (msgrcv(msgId_GeneratorSchedular, &msg, sizeof(msg.process), 0, IPC_NOWAIT) != -1)
     {
-        if (firstProcess)
+        if (isFirstProcess)
         {
             startTime = getClk();
-            firstProcess = false;
+            isFirstProcess = false;
         }
         printf("time :%d\n", getClk());
         struct processData *process = (struct processData *)malloc(sizeof(msg.process));
@@ -308,10 +308,10 @@ void RB(int quantumValue)
     printf("ROUND ROBIN\n");
     while (msgrcv(msgId_GeneratorSchedular, &msg, sizeof(msg.process), 0, IPC_NOWAIT) != -1)
     {
-        if (firstProcess)
+        if (isFirstProcess)
         {
             startTime = getClk();
-            firstProcess = false;
+            isFirstProcess = false;
         }
         printf("time :%d\n", getClk());
         struct processData *process = (struct processData *)malloc(sizeof(msg.process));
@@ -495,6 +495,7 @@ int main(int argc, char *argv[])
         printList(processFinished);
         //handleOutputFiles(processFinished);
         // create a .perf file
+        calcQueue = createPriorityQueue();
         perfFile = fopen("scheduler.perf", "w");
         //
         float cpuUtil = ((float)countActive / (endTime - startTime)) * 100;
@@ -504,7 +505,7 @@ int main(int argc, char *argv[])
         int waitingTimeSum;
         float sumWTASquared = 0;
         float weightedTASum = 0;
-        int processesCount = calcQueue->count;
+        int processesCount = calcQueue->size;
         for (int i = 0; i < processesCount; i++)
         {
             struct processData *calcProcess = dequeue(calcQueue);
@@ -525,7 +526,7 @@ int main(int argc, char *argv[])
             sumWTASquared += (difference * difference);
         }
 
-        float meanWTASquared = sumWTASquared / procressCount;
+        float meanWTASquared = sumWTASquared / processesCount;
         stdWTA = sqrt(meanWTASquared);
         fprintf(perfFile, "CPU\tutlilization\t=\t%.2f%%\n", cpuUtil);
         fprintf(perfFile, "Avg\tWTA\t=\t%.2f\n", avgWTA);
