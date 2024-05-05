@@ -2,8 +2,10 @@
 int msgId_GeneratorSchedular, recVal_GeneratorSchedular, msgId_SchedularProcess, sendVal_SchedularProcess;
 struct List *processQueue;
 struct List *processFinished;
+struct List *tempQueue;
 struct List *processStoppedQueue;
 struct List *calcQueue;
+struct memoryTree *tree = NULL;
 struct msgbuff msg;
 struct msgBuff1 msg2;
 struct processData *processRun = NULL;
@@ -75,8 +77,16 @@ void HPF()
         struct processData *process = (struct processData *)malloc(sizeof(msg.process));
         *process = msg.process;
         strcpy(process->state, "ready");
-        //Log(process);
+         int *memoryPositions = allocateProcess(tree, receivedProcess->memSize, receivedProcess->id);
+        if (memoryPositions[0] == -1 && memoryPositions[1] == -1)
+        {
+            printf("Memory is full\n");
+            continue;
+        }
+        receivedProcess->startMem = memoryPositions[0];
+        receivedProcess->endMem = memoryPositions[1];
         enqueue(processQueue, process);
+        memoryLog(process);
         printProcessInfo(process);
         numberProcesses--;
     }
@@ -104,6 +114,35 @@ void HPF()
             finishedProcesses++;
             processRun->turnAroundTime=processRun->finishedTime -processRun->arrivalTime;
             processRun->weightedTurnAroundTime=(float)processRun->turnAroundTime/processRun->runTime;
+            memoryLog(processRun);
+            deallocateProcess(tree, processRun->id);
+            tempQueue = createPriorityQueue();
+            struct processData *processToAllocate = NULL;
+            while (!isEmpty(processQueue))
+            {
+                processToAllocate = dequeue(processQueue);
+                if (processToAllocate)
+                {
+                    int *memoryPositions = allocateProcess(tree, processToAllocate->memSize, processToAllocate->id);
+                    if (memoryPositions[0] == -1 && memoryPositions[1] == -1)
+                    {
+                        enqueue(tempQueue, processToAllocate);
+                    }
+                    else
+                    {
+                        process = processToAllocate;
+                        process->startPosition = memoryPositions[0];
+                        process->endPosition = memoryPositions[1];
+                        enqueue(processQueue, process);
+                        memoryLog(process);
+                    }
+                }
+            }
+            while (!isEmpty(tempQueue))
+            {
+                processToAllocate = dequeue(tempQueue);
+                enqueue(processQueue, processToAllocate);
+            }
             Log(processRun);
             Insert(processFinished, processRun);
         }
@@ -475,7 +514,7 @@ int main(int argc, char *argv[])
         }
         printf("message queue Id between process generator and scheduler %d\n", msgId_GeneratorSchedular);
         printf("message queue Id between scheduler and processes %d\n", msgId_SchedularProcess);
-
+        tree = createMemoryTree();
         int sem_sync = -1;
         key_t key_sem_sync = ftok("keyfile", 80);
         sem_sync = semget(key_sem_sync,1,0666|IPC_CREAT);
