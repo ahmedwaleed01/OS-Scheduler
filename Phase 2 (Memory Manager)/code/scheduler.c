@@ -77,14 +77,14 @@ void HPF()
         struct processData *process = (struct processData *)malloc(sizeof(msg.process));
         *process = msg.process;
         strcpy(process->state, "ready");
-         int *memoryPositions = allocateProcess(tree, receivedProcess->memSize, receivedProcess->id);
+         int *memoryPositions = allocateProcess(tree, process->memSize, process->id);
         if (memoryPositions[0] == -1 && memoryPositions[1] == -1)
         {
             printf("Memory is full\n");
             continue;
         }
-        receivedProcess->startMem = memoryPositions[0];
-        receivedProcess->endMem = memoryPositions[1];
+        process->startMem = memoryPositions[0];
+        process->endMem = memoryPositions[1];
         enqueue(processQueue, process);
         memoryLog(process);
         printProcessInfo(process);
@@ -130,11 +130,11 @@ void HPF()
                     }
                     else
                     {
-                        process = processToAllocate;
-                        process->startPosition = memoryPositions[0];
-                        process->endPosition = memoryPositions[1];
-                        enqueue(processQueue, process);
-                        memoryLog(process);
+                        processRun = processToAllocate;
+                        processRun->startMem = memoryPositions[0];
+                        processRun->endMem = memoryPositions[1];
+                        enqueue(processQueue, processRun);
+                        memoryLog(processRun);
                     }
                 }
             }
