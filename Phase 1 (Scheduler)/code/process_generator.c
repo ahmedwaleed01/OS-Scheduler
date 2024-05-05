@@ -81,6 +81,8 @@ int main(int argc, char * argv[])
     // Count the Number of Processes
     int numberProcesses = CountProcess("processes.txt");
 
+    printf("PROCESSSSSSSSSSSSSSSSSSSSSSSSSS  SSSS %d\n",numberProcesses);
+
     // Create Process Table
     struct processInputData processTable[numberProcesses];
     for(int i=0; i<numberProcesses;i++){

@@ -25,10 +25,6 @@ int main(int agrc, char * argv[])
     while (remainingtime > 0)
     {
     
-        // if(msgrcv(msgId_SchedularProcess, &msg2, sizeof(msg2.decrement), getpid(), IPC_NOWAIT) != -1){
-        //     remainingtime --;
-        //     printf("remaining time : %d\n",remainingtime);
-        // }
         printf("PROCESS ID: %d time is %d\n",getpid(),getClk());
         msgrcv(msgId_SchedularProcess, &msg2, sizeof(msg2.decrement), getpid(), !IPC_NOWAIT);
         
@@ -38,12 +34,6 @@ int main(int agrc, char * argv[])
         printf("The Remaining Time %d clock time: %d\n",remainingtime,getClk());
         if (remainingtime == 0){
             printf("process %d finished\n",getpid());
-            // msg.mType=getpid();
-            // int sendVal = msgsnd(msgId_SchedularProcess,&msg, sizeof(msg.process),!IPC_NOWAIT);
-            // if(sendVal == -1){
-            //     perror("Error in sending process to the Scheduler");
-            //     exit(-1);
-            // }
             break;
         }
 

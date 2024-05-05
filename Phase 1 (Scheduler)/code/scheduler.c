@@ -21,19 +21,6 @@ union Semun semun;
 int sem_sync = -1;
 
 
-float square_root(float num) {
-    float x = num;
-    float y = 1;
-    float epsilon = 0.000001; 
-
-    while (x - y > epsilon) {
-        x = (x + y) / 2;
-        y = num / x;
-    }
-
-    return x;
-}
-
 void Log(struct processData *process)
 {
     if (process)
@@ -159,13 +146,9 @@ void HPF()
  ********************************************************/
 void SRTN()
 {
+    /************ Every clock cycle get process arrived from process generator ****************/
     while (msgrcv(msgId_GeneratorSchedular, &msg, sizeof(msg.process), 0, IPC_NOWAIT) != -1)
     {
-        // if (isFirstProcess)
-        // {
-        //     startTime = getClk();
-        //     isFirstProcess = false;
-        // }
         printf("time :%d\n", getClk());
         struct processData *process = (struct processData *)malloc(sizeof(msg.process));
         *process = msg.process;
@@ -174,11 +157,13 @@ void SRTN()
         printProcessInfo(process);
         numberProcesses--;
     }
+    /***********************************************************************
+     * send message to running process to decrement its remaining time by one
+     *  ********************************************************************/
     if (isRunning)
     {
         countActive++;
         msg2.mType = processRun->PID;
-        printf("///////////////////PROCEESSS REMAIN TIMEEEEEE: %d   %d\n", processRun->remainingTime, msg2.mType);
         int sendVal = msgsnd(msgId_SchedularProcess, &msg2, sizeof(msg2.decrement), !IPC_NOWAIT);
         processRun->remainingTime--;
         Log(processRun);
@@ -199,14 +184,19 @@ void SRTN()
             Insert(processFinished, processRun);
         }
     }
+    /**************************************************************************************
+     *  Case there is no process running:
+     *  -I Have to check which process to run the stopped process or process in the ready queue
+     * *************************************************************************************/
     if (!isRunning)
     {
-        if (!isEmpty(processStoppedQueue) && !isEmpty(processQueue) && processStoppedQueue->head->process->remainingTime <= processStoppedQueue->head->process->remainingTime)
+        if ((!isEmpty(processStoppedQueue) && !isEmpty(processQueue) && processStoppedQueue->head->process->remainingTime <= processQueue->head->process->remainingTime )||
+            !isEmpty(processStoppedQueue) && isEmpty(processQueue)
+        )
         {
             processRun = dequeue(processStoppedQueue);
             strcpy(processRun->state, "resumed");
             msg2.mType = processRun->PID;
-            printf("PROCESSSSSSSSSSSSSSSSSSS  %d   STATEEEEEEEEEEE :: %s\n", msg2.mType, processRun->state);
             isRunning = true;
         }
         else
@@ -255,6 +245,11 @@ void SRTN()
             return;
         }
     }
+     /**************************************************************************************
+     *  Case there is a running process
+     *  -I Have to check if there is an already process in my ready queue have less remainingTime
+     *  if condition is true stop the running process and fork the new process.
+     * *************************************************************************************/
     else if (isRunning && !isEmpty(processQueue) && processRun->remainingTime > processQueue->head->process->remainingTime)
     {
         strcpy(processRun->state, "stopped");
@@ -299,11 +294,9 @@ void SRTN()
         {
             processRun->PID = pid;
             msg2.mType = pid;
-            printf("testtttttttttttttttttttttttttttttttttttttttttttttttttt %d \n", msg2.mType);
         }
         processRun->PID = pid;
         msg2.mType = pid;
-        printf("testtttttttttttttttttttttttttttttttttttttttttttttttttt2222 %d \n", msg2.mType);
         return;
     }
 }
@@ -319,19 +312,12 @@ void RB(int quantumValue)
     printf("ROUND ROBIN\n");
     while (msgrcv(msgId_GeneratorSchedular, &msg, sizeof(msg.process), 0, IPC_NOWAIT) != -1)
     {
-        // if (isFirstProcess)
-        // {
-        //     startTime = getClk();
-        //     isFirstProcess = false;
-        // }
-        printf("time :%d\n", getClk());
         struct processData *process = (struct processData *)malloc(sizeof(msg.process));
         *process = msg.process;
         process->quantum = quantumValue;
         strcpy(process->state, "ready");
         Insert(processQueue, process);
         printProcessInfo(process);
-        //Log(processRun);
         numberProcesses--;
     }
 
@@ -339,7 +325,6 @@ void RB(int quantumValue)
     {
         countActive++;
         msg2.mType = processRun->PID;
-        printf("///////////////////PROCEESSS REMAIN TIMEEEEEE: %d   %d\n", processRun->remainingTime, msg2.mType);
         int sendVal = msgsnd(msgId_SchedularProcess, &msg2, sizeof(msg2.decrement), !IPC_NOWAIT);
         processRun->remainingTime--;
         processRun->quantum--;
@@ -356,9 +341,7 @@ void RB(int quantumValue)
             finishedProcesses++;
             processRun->turnAroundTime=processRun->finishedTime -processRun->arrivalTime;
             processRun->weightedTurnAroundTime=(float)processRun->turnAroundTime/processRun->runTime;
-            // enqueue(calcQueue,processRun);
             Log(processRun);
-            printf("NUMBER FINISHED PROCESSSSSSSSS: %d\n", finishedProcesses);
             Insert(processFinished, processRun);
         }
         else if (processRun->quantum == 0)
@@ -369,7 +352,9 @@ void RB(int quantumValue)
             isRunning = false; 
         }
     }
-
+    /**************************************************************************************
+     *  Case there is no process running send fork a process on the top of the queue
+     * *************************************************************************************/
     if (!isRunning)
     {
         if (!isEmpty(processQueue))
@@ -395,7 +380,6 @@ void RB(int quantumValue)
                     /********* Process Code *********/
                 processRun->PID = getpid();
                 processRun->startTime=getClk();
-                printf("process %d is Created\n", processRun->PID);
                 printProcessInfo(processRun);
                 char *processCode;
                 char processDirectory[256];
@@ -428,9 +412,9 @@ int main(int argc, char *argv[])
         // TODO implement the scheduler :)
         // upon termination release the clock resources.
 
-        /***Configure Output Image***/
-        int width = 600;                    // Width of the surface
-        int height = 600;                   // Height of the surface
+        /************Configure Output Image************/
+        int width = 600;                    
+        int height = 600;                   
         cairo_surface_t *surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, width, height);
         cairo_t *cr = cairo_create(surface);
 
@@ -484,6 +468,7 @@ int main(int argc, char *argv[])
 
         processFinished = createPriorityQueue();
         int processCounts = numberProcesses;
+        printf("nooooooooooooooooooooooooooooooooo processs %d\n", processCounts);
         while (finishedProcesses != processCounts)
         {
             if (schedulerAlgorithm == 1)
@@ -509,15 +494,16 @@ int main(int argc, char *argv[])
             }
         }
         fclose(LogFile);
+        /****Print List of Finished Process in the terminal*****/
         printList(processFinished);
-            /******Draw The Output Image********/
+
+        /**********Draw The Output Image********/
         draw_list(cr, processFinished);
         cairo_surface_write_to_png(surface, "output.png");
         cairo_destroy(cr);
         cairo_surface_destroy(surface);
-        //handleOutputFiles(processFinished);
-        // create a .perf file
-        // calcQueue = createPriorityQueue();
+
+        calcQueue = createPriorityQueue();
         perfFile = fopen("scheduler.perf", "w");
         float cpuUtil = ((float)countActive / (endTime - startTime)) * 100;
         float avgWaitTime = 0;
@@ -548,7 +534,7 @@ int main(int argc, char *argv[])
         }
 
         float meanWTASquared = sumWTASquared / processesCount;
-        stdWTA = square_root(meanWTASquared);
+        stdWTA = sqrt(meanWTASquared);
         fprintf(perfFile, "CPU\tutlilization\t=\t%.2f%%\n", cpuUtil);
         fprintf(perfFile, "Avg\tWTA\t=\t%.2f\n", avgWTA);
         fprintf(perfFile, "Avg\tWaiting\t=\t%.2f\n", avgWaitTime);

@@ -43,7 +43,7 @@ int CountProcess (char* fileName){
         perror("Error Openning File");
         return 1;
     };
-    char line [10];
+    char line [100];
     int numberProcesses=0;
     while (fgets(line, sizeof(line),fptr1) != NULL){;
         numberProcesses++;
