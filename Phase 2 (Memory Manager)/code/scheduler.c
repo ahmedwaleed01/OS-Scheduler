@@ -13,6 +13,7 @@ bool isRunning = false;
 int pid;
 FILE *LogFile; // this is the log file
 FILE *perfFile;
+FILE *memoryLogFile;
 int countActive=1;
 bool isFirstProcess = true;
 int startTime = 0;
@@ -454,6 +455,15 @@ int main(int argc, char *argv[])
             return 1;
         }
         fprintf(LogFile, "#At\ttime\tx\tprocess\ty\tstate\tarr\tw\ttotal\tz\tremain\ty\twait\tk\n");
+        // Opening the memory.log file to write in it
+        memoryLogFile = fopen("memory.log", "w");
+        if (memoryLogFile == NULL)
+        {
+            printf("Error opening Memory the file.\n");
+            return 1;
+        }
+        fprintf(memoryLogFile, "#At\ttime\tx\tallocated\ty\tbytes\tfor\tprocess\tz\tfrom\ti\tto\tj\n");
+
         // Create message queue between scheduler and processes
         key_t key_id2;
         key_id2 = ftok("keyfile", 75);
@@ -559,6 +569,6 @@ int main(int argc, char *argv[])
         fprintf(perfFile, "Avg\tWaiting\t=\t%.2f\n", avgWaitTime);
         fprintf(perfFile, "Std\tWTA\t=\t%.2f\n", stdWTA);
         fclose(perfFile);
-
+        fclose(memoryLogFile);
         destroyClk(true);
     }

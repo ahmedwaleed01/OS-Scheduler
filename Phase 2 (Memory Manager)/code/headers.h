@@ -14,6 +14,7 @@
 #include <cairo.h>
 #include <math.h>
 #include <sys/sem.h>
+#include <limits.h>
 
 typedef short bool;
 #define true 1
@@ -356,7 +357,7 @@ struct memoryTree
     struct memoryNode *root;
 };
 
-struct memoryNode *createMemoryNode(int size, int startPosition, struct memoryNode *parent);
+struct memoryNode *createMemoryNode(int size, int startPosition, struct memoryNode *parent)
 {
     struct memoryNode *newNode = (struct memoryNode *)malloc(sizeof(struct memoryNode));
     if (newNode == NULL)
