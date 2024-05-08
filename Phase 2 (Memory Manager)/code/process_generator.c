@@ -2,7 +2,7 @@
 
 void clearResources(int);
 int algorithmChosen;
-char quatum[100]="1";
+char quatum[100]="2";
 // void callBackFunc(GtkWidget* widget,gpointer data){
 //      const char *buttonLabel = (const char*)data;
 //     algorithmChosen=atoi(buttonLabel);
@@ -85,10 +85,14 @@ int main(int argc, char * argv[])
 
     // Create Process Table
     struct processInputData processTable[numberProcesses];
-    for(int i=0; i<numberProcesses;i++){
-        fscanf(fptr,"%d\t%d\t%d\t%d\t%d",&processTable[i].id,&processTable[i].arrivalTime,&processTable[i].runTime,&processTable[i].priority,&processTable[i].memSize);
-        printf("mem test %d\n",processTable[i].memSize);
+   for(int i=0; i<numberProcesses; i++){
+    fscanf(fptr, "%d\t%d\t%d\t%d\t%d", &processTable[i].id, &processTable[i].arrivalTime, &processTable[i].runTime, &processTable[i].priority, &processTable[i].memSize);
+        printf("mem test %d\n", processTable[i].memSize);
+        printf("pri test %d\n", processTable[i].priority);
     }
+
+
+    printf("ssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssssss mem:%d pri:%d  ar:%d\n",processTable[0].memSize,processTable[0].priority,processTable[0].arrivalTime);
 
     char str_algorithmChosen[10];
     char str_numberProcesses[10];
@@ -155,7 +159,9 @@ int main(int argc, char * argv[])
         processDataTable[i].turnAroundTime=0;
         processDataTable[i].waitingTime=0;
         processDataTable[i].weightedTurnAroundTime=0;
+        processDataTable[i].PID=0;
         strcpy(processDataTable[i].state,"ready");
+        printf("testtttttttttttttttttttttttttttttaaaaaaaaaaaaaaaaaaaa %d %d\n",processDataTable[i].memSize,processDataTable[i].priority);
     }
     // Create message queue between process generator and scheduler
     key_t key_id;
@@ -169,7 +175,7 @@ int main(int argc, char * argv[])
     printf("message queue Id between process generator and scheduler %d\n", msgId_GeneratorSchedular );
     // Send the information to the scheduler at the appropriate time.
     struct msgbuff msg;
-    msg.mType = 1;
+    msg.mType = 2;
     int sendVal;
     int countProcessSent=0;
     int time=processDataTable[0].arrivalTime;
@@ -178,13 +184,15 @@ int main(int argc, char * argv[])
         if(time <= getClk()) {
             while (processDataTable[countProcessSent].arrivalTime == time){
                 msg.process=processDataTable[countProcessSent];
+                printf("henaaaaaaaaaaaaaaaaaaaa %d %d %d %d\n",processDataTable[countProcessSent].memSize, processDataTable[countProcessSent].priority,countProcessSent,numberProcesses);
                 printf("process :%d is sent %d\n",msg.process.id,msg.process.memSize);
                 sendVal = msgsnd(msgId_GeneratorSchedular,&msg, sizeof(msg.process),!IPC_NOWAIT);
-            if(sendVal == -1){
-                perror("Error in sending process to the Scheduler");
-                exit(-1);
-            }
+                if(sendVal == -1){
+                    perror("Error in sending process to the Scheduler");
+                    exit(-1);
+                }
                 countProcessSent++;
+                if(countProcessSent>=numberProcesses) break;
             }
             time++;
         }

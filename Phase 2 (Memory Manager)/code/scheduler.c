@@ -10,6 +10,8 @@ struct msgbuff msg;
 struct msgBuff1 msg2;
 struct processData *processRun = NULL;
 struct processData *firstProcess = NULL;
+struct processData *tempProcess = NULL;
+struct processData *tempProcess2 = NULL;
 int numberProcesses, finishedProcesses = 0;
 bool isRunning = false;
 int pid;
@@ -22,6 +24,9 @@ int startTime = 0;
 int endTime = 0;
 union Semun semun;
 int sem_sync = -1;
+ int *memoryPositions;
+int remainMemSize=1024;
+int schedulerAlgorithm;
 
 
 void Log(struct processData *process)
@@ -61,6 +66,53 @@ void memoryLog(struct processData *process)
         return;
     }
 }
+void checkAllocation()
+{
+    struct List *temp = createLinkedList();
+    struct processData *processToAllocate = NULL;
+    while (tempQueue->head)
+    {
+        processToAllocate = dequeue(tempQueue);
+       
+        if (processToAllocate)
+        { 
+            int *memoryPositions = allocateProcess(tree, processToAllocate->memSize, processToAllocate->id);
+            printf("BABDA2 MN %d\n", memoryPositions[0]);
+            printf("BA5ALAS MN %d\n", memoryPositions[1]);
+            if (memoryPositions[0] == -1 && memoryPositions[1] == -1)
+            {
+                printf("MEMORYYY MALYANAA AWYY YA SA7BY\n");
+                Insert(temp, processToAllocate);
+                 printf("$$$$$$$$$$$$$$$$$$$$$$$$$$$ %d %d\n",processToAllocate->id,processToAllocate->memSize);
+            }
+            else
+            {
+                printf("ERKABB YA SA7BY\n");
+                struct processData *receivedProcess = processToAllocate;
+                receivedProcess->startMem = memoryPositions[0];
+                receivedProcess->endMem= memoryPositions[1];
+                if(schedulerAlgorithm==3){
+                    Insert (processQueue, receivedProcess);
+                }else{
+                    enqueue(processQueue, receivedProcess);
+                }
+                printf("******************************************************************$$$$$$$$$$$$$$$$$$$$$$$$$$$ %d %d\n",processToAllocate->id,processToAllocate->memSize);
+                memoryLog(receivedProcess);
+            }
+        }
+        else
+        {
+            printf("No Waiting Processes\n");
+            break;
+        }
+    }
+    while (temp->head)
+    {
+        processToAllocate = dequeue(temp);
+        Insert(tempQueue, processToAllocate);
+    }
+    return;
+}
 
 /********************************************************
  ********************************************************
@@ -76,19 +128,31 @@ void HPF()
         printf("time :%d\n", getClk());
         struct processData *process = (struct processData *)malloc(sizeof(msg.process));
         *process = msg.process;
-        strcpy(process->state, "ready");
+        strcpy(process->state, "arrived");
+        printf("testttttttttttttttttttttttttttttt %d %d pid %d\n",process->memSize,process->priority,process->id);
+         printf("1111111111111111111111111111111111111111\n");
+        // printProcessInfo(process);
+        numberProcesses--;
+        printf("1111111111111111111111111111111111111111\n");
         int *memoryPositions = allocateProcess(tree, process->memSize, process->id);
+        printf("22222222222222222222222222222222222222222");
+
         if (memoryPositions[0] == -1 && memoryPositions[1] == -1)
         {
-            printf("Memory is full\n");
-            continue;
+            printf("*****************************Memory is fullllllllllllllllllllllllllllllllll*************************\n");
+            enqueue(tempQueue,process);
+            // printList(tempQueue);
+            // printList(processQueue);
         }
-        process->startMem = memoryPositions[0];
-        process->endMem = memoryPositions[1];
-        enqueue(processQueue, process);
-        memoryLog(process);
-        printProcessInfo(process);
-        numberProcesses--;
+        else
+        {
+            printf("sssssssmkaaksmsakjskamdkjkmsakjnjnsaaSSAASASSA\n");
+            printf("Allocate    Hna \n");
+            process->startMem = memoryPositions[0];
+            process->endMem = memoryPositions[1];
+            enqueue(processQueue,process);
+            memoryLog(process);
+        }
     }
     /**************************************************************************************
      * Case there is a Process running send message to process to decrement remaining time
@@ -114,37 +178,13 @@ void HPF()
             finishedProcesses++;
             processRun->turnAroundTime=processRun->finishedTime -processRun->arrivalTime;
             processRun->weightedTurnAroundTime=(float)processRun->turnAroundTime/processRun->runTime;
-            memoryLog(processRun);
+            
             deallocateProcess(tree, processRun->id);
-            tempQueue = createPriorityQueue();
-            struct processData *processToAllocate = NULL;
-            while (!isEmpty(processQueue))
-            {
-                processToAllocate = dequeue(processQueue);
-                if (processToAllocate)
-                {
-                    int *memoryPositions = allocateProcess(tree, processToAllocate->memSize, processToAllocate->id);
-                    if (memoryPositions[0] == -1 && memoryPositions[1] == -1)
-                    {
-                        enqueue(tempQueue, processToAllocate);
-                    }
-                    else
-                    {
-                        processRun = processToAllocate;
-                        processRun->startMem = memoryPositions[0];
-                        processRun->endMem = memoryPositions[1];
-                        enqueue(processQueue, processRun);
-                        memoryLog(processRun);
-                    }
-                }
-            }
-            while (!isEmpty(tempQueue))
-            {
-                processToAllocate = dequeue(tempQueue);
-                enqueue(processQueue, processToAllocate);
-            }
+            memoryLog(processRun);  
+            checkAllocation();   
             Log(processRun);
             Insert(processFinished, processRun);
+    
         }
     }
     /**************************************************************************************
@@ -211,11 +251,33 @@ void SRTN()
         printf("time :%d\n", getClk());
         struct processData *process = (struct processData *)malloc(sizeof(msg.process));
         *process = msg.process;
-        strcpy(process->state, "ready");
-        enqueue(processQueue, process);
-        printProcessInfo(process);
+        strcpy(process->state, "arrived");
+        printf("testttttttttttttttttttttttttttttt %d %d pid %d\n",process->memSize,process->priority,process->id);
+         printf("1111111111111111111111111111111111111111\n");
+        // printProcessInfo(process);
         numberProcesses--;
+        printf("1111111111111111111111111111111111111111\n");
+        int *memoryPositions = allocateProcess(tree, process->memSize, process->id);
+        printf("22222222222222222222222222222222222222222");
+
+        if (memoryPositions[0] == -1 && memoryPositions[1] == -1)
+        {
+            printf("*****************************Memory is fullllllllllllllllllllllllllllllllll*************************\n");
+            enqueue(tempQueue,process);
+            printList(tempQueue);
+            printList(processQueue);
+        }
+        else
+        {
+            printf("sssssssmkaaksmsakjskamdkjkmsakjnjnsaaSSAASASSA\n");
+            printf("Allocate    Hna \n");
+            process->startMem = memoryPositions[0];
+            process->endMem = memoryPositions[1];
+            enqueue(processQueue,process);
+            memoryLog(process);
+        }
     }
+    
     /***********************************************************************
      * send message to running process to decrement its remaining time by one
      *  ********************************************************************/
@@ -239,9 +301,15 @@ void SRTN()
             processRun->turnAroundTime=processRun->finishedTime -processRun->arrivalTime;
             processRun->weightedTurnAroundTime=(float)processRun->turnAroundTime/processRun->runTime;
             Log(processRun);
-            printf("NUMBER FINISHED PROCESSSSSSSSS: %d\n", finishedProcesses);
+            deallocateProcess(tree, processRun->id);
+            memoryLog(processRun); 
+            printf("NUMBER FINISHED PROCESSSSSSSSS: %d\n", finishedProcesses); 
+            
             Insert(processFinished, processRun);
+            remainMemSize+=processRun->memSize;
+            printList(processQueue);  
         }
+        checkAllocation(tempQueue,processQueue);
     }
     /**************************************************************************************
      *  Case there is no process running:
@@ -249,116 +317,120 @@ void SRTN()
      * *************************************************************************************/
     if (!isRunning)
     {
-        if ((!isEmpty(processStoppedQueue) && !isEmpty(processQueue) && processStoppedQueue->head->process->remainingTime <= processQueue->head->process->remainingTime )||
-            !isEmpty(processStoppedQueue) && isEmpty(processQueue)
-        )
-        {
-            processRun = dequeue(processStoppedQueue);
-            strcpy(processRun->state, "resumed");
-            msg2.mType = processRun->PID;
-            isRunning = true;
-        }
-        else
-        {
             processRun = dequeue(processQueue);
+            printf("NOT RUNNNNNNNNNNNNNNNNNNNNNNNNNNNNNNN\n");
             if (processRun == NULL)
                 return;
-            isRunning = true;
+                isRunning = true;
             strcpy(processRun->state, "started");
             processRun->waitingTime=getClk()-processRun->arrivalTime;
             Log(processRun);
             char str_remainTime[10];
             sprintf(str_remainTime, "%d", processRun->remainingTime);
 
-            pid = fork();
+                if(processRun->PID!=0){
+                    return;
+                }
+                remainMemSize-=processRun->memSize;
+                pid = fork();
 
-            if (pid == -1)
-            {
-                perror("Error in forking process;)\n");
-            }
-            else if (pid == 0)
-            {
-                /********* Process Code *********/
-                processRun->PID = getpid();
-                processRun->startTime=getClk();
-                printf("process %d is Created\n", processRun->PID);
-                printProcessInfo(processRun);
-                char *processCode;
-                char processDirectory[256];
-                if (getcwd(processDirectory, sizeof(processDirectory)) != NULL)
+                if (pid == -1)
                 {
-                    processCode = strcat(processDirectory, "/process.out");
+                    perror("Error in forking process;)\n");
+                }
+                else if (pid == 0)
+                {
+                    /********* Process Code *********/
+                    processRun->PID = getpid();
+                    processRun->startTime=getClk();
+                    printf("process %d is Created\n", processRun->PID);
+                    printProcessInfo(processRun);
+                    char *processCode;
+                    char processDirectory[256];
+                    if (getcwd(processDirectory, sizeof(processDirectory)) != NULL)
+                    {
+                        processCode = strcat(processDirectory, "/process.out");
+                    }
+                    else
+                    {
+                        perror("Error in getting the working directory ");
+                    }
+                    execl(processCode, processCode, str_remainTime, NULL);
+                    exit(1);
                 }
                 else
                 {
-                    perror("Error in getting the working directory ");
+                    processRun->PID = pid;
+                    msg2.mType = pid;
                 }
-                execl(processCode, processCode, str_remainTime, NULL);
-                exit(1);
-            }
-            else
-            {
-                processRun->PID = pid;
-                msg2.mType = pid;
             }
             return;
-        }
-    }
+    
+    
      /**************************************************************************************
      *  Case there is a running process
      *  -I Have to check if there is an already process in my ready queue have less remainingTime
      *  if condition is true stop the running process and fork the new process.
      * *************************************************************************************/
-    else if (isRunning && !isEmpty(processQueue) && processRun->remainingTime > processQueue->head->process->remainingTime)
+    if (isRunning && !isEmpty(processQueue) && processRun->remainingTime > processQueue->head->process->remainingTime)
     {
-        strcpy(processRun->state, "stopped");
-        Log(processRun);
-        enqueue(processStoppedQueue, processRun);
-        processRun = dequeue(processQueue);
-        if (processRun == NULL)
-            return;
-        strcpy(processRun->state, "started");
-        processRun->waitingTime=getClk()-processRun->arrivalTime;
-        Log(processRun);
-        char str_remainTime[10];
-        sprintf(str_remainTime, "%d", processRun->remainingTime);
 
-        pid = fork();
+                strcpy(processRun->state, "stopped");
+                Log(processRun);
+                // enqueue(processStoppedQueue, processRun);
+                enqueue(processQueue, processRun);
+                processRun = dequeue(processQueue);
+                if (processRun == NULL)
+                    return;
+                printf("*************************JJjjjjjjjjjjjjjjjjjjjjjjj***************\n");
+                if(strcmp("stopped",processRun->state)==0){
+                    return;
+                }
+                
+                strcpy(processRun->state, "started");
+                processRun->waitingTime=getClk()-processRun->arrivalTime;
+                Log(processRun);
+                char str_remainTime[10];
+                sprintf(str_remainTime, "%d", processRun->remainingTime);
+                printf("sssssss\n");
+          
+                remainMemSize-=processRun->memSize;
+                pid = fork();
 
-        if (pid == -1)
-        {
-            perror("Error in forking process;)\n");
-        }
-        else if (pid == 0)
-        {
-            /********* Process Code *********/
-            processRun->PID = getpid();
-            processRun->startTime=getClk();
-            printf("process %d is Created\n", processRun->PID);
-            printProcessInfo(processRun);
-            char *processCode;
-            char processDirectory[256];
-            if (getcwd(processDirectory, sizeof(processDirectory)) != NULL)
-            {
-                processCode = strcat(processDirectory, "/process.out");
-            }
-            else
-            {
-                perror("Error in getting the working directory ");
-            }
-            execl(processCode, processCode, str_remainTime, NULL);
-            exit(1);
-        }
-        else
-        {
-            processRun->PID = pid;
-            msg2.mType = pid;
-        }
-        processRun->PID = pid;
-        msg2.mType = pid;
+                if (pid == -1)
+                {
+                    perror("Error in forking process;)\n");
+                }
+                else if (pid == 0)
+                {
+                    /********* Process Code *********/
+                    processRun->PID = getpid();
+                    processRun->startTime=getClk();
+                    printf("process %d is Created\n", processRun->PID);
+                    printProcessInfo(processRun);
+                    char *processCode;
+                    char processDirectory[256];
+                    if (getcwd(processDirectory, sizeof(processDirectory)) != NULL)
+                    {
+                        processCode = strcat(processDirectory, "/process.out");
+                    }
+                    else
+                    {
+                        perror("Error in getting the working directory ");
+                    }
+                    execl(processCode, processCode, str_remainTime, NULL);
+                    exit(1);
+                }
+                else
+                {
+                    processRun->PID = pid;
+                    msg2.mType = pid;
+                }
+    
         return;
     }
 }
+
 
 /********************************************************
  ********************************************************
@@ -371,13 +443,36 @@ void RB(int quantumValue)
     printf("ROUND ROBIN\n");
     while (msgrcv(msgId_GeneratorSchedular, &msg, sizeof(msg.process), 0, IPC_NOWAIT) != -1)
     {
+       
+        printf("time :%d\n", getClk());
         struct processData *process = (struct processData *)malloc(sizeof(msg.process));
         *process = msg.process;
-        process->quantum = quantumValue;
-        strcpy(process->state, "ready");
-        Insert(processQueue, process);
-        printProcessInfo(process);
+        process->quantum=quantumValue;
+        strcpy(process->state, "arrived");
+        printf("testttttttttttttttttttttttttttttt %d %d pid %d\n",process->memSize,process->priority,process->id);
+         printf("1111111111111111111111111111111111111111\n");
+        // printProcessInfo(process);
         numberProcesses--;
+        printf("1111111111111111111111111111111111111111\n");
+        int *memoryPositions = allocateProcess(tree, process->memSize, process->id);
+        printf("22222222222222222222222222222222222222222");
+
+        if (memoryPositions[0] == -1 && memoryPositions[1] == -1)
+        {
+            printf("*****************************Memory is fullllllllllllllllllllllllllllllllll*************************\n");
+            Insert(tempQueue,process);
+            printList(tempQueue);
+            printList(processQueue);
+        }
+        else
+        {
+            printf("sssssssmkaaksmsakjskamdkjkmsakjnjnsaaSSAASASSA\n");
+            printf("Allocate    Hna \n");
+            process->startMem = memoryPositions[0];
+            process->endMem = memoryPositions[1];
+            Insert(processQueue,process);
+            memoryLog(process);
+        }
     }
 
     if (isRunning)
@@ -402,14 +497,21 @@ void RB(int quantumValue)
             processRun->weightedTurnAroundTime=(float)processRun->turnAroundTime/processRun->runTime;
             Log(processRun);
             Insert(processFinished, processRun);
+            deallocateProcess(tree, processRun->id);
+            memoryLog(processRun); 
+            remainMemSize+=processRun->memSize;
+            checkAllocation(tempQueue,processQueue);
         }
         else if (processRun->quantum == 0)
         {
             processRun->quantum = quantumValue;
-            strcpy(processRun->state, "ready");
+            strcpy(processRun->state, "stopped");
+            printf("processsssssssssssssssss %d stopped %d\n",processRun->id,getClk());
+            Log(processRun);
             Insert(processQueue, processRun); 
             isRunning = false; 
         }
+        // started, resumed, stopped, finished.
     }
     /**************************************************************************************
      *  Case there is no process running send fork a process on the top of the queue
@@ -422,42 +524,48 @@ void RB(int quantumValue)
             if (processRun == NULL)
                 return;
             isRunning = true;
-            strcpy(processRun->state, "started");
-            processRun->waitingTime=getClk()-processRun->arrivalTime;  
-            Log(processRun); 
-            char str_remainTime[10];
-            sprintf(str_remainTime, "%d", processRun->remainingTime);
+            if(strcmp("stopped",processRun->state)==0){
+                strcpy(processRun->state, "resumed");
+                Log(processRun); 
+            }else{
+                    printf("processssssssssssssss state %s",processRun->state);
 
-            pid = fork();
+                    strcpy(processRun->state, "started");
+                    processRun->waitingTime=getClk()-processRun->arrivalTime;  
+                    Log(processRun); 
+                    char str_remainTime[10];
+                    sprintf(str_remainTime, "%d", processRun->remainingTime);
 
-            if (pid == -1)
-            {
-                perror("Error in forking process;)\n");
-            }
-            else if (pid == 0)
-            {
-                    /********* Process Code *********/
-                processRun->PID = getpid();
-                processRun->startTime=getClk();
-                printProcessInfo(processRun);
-                char *processCode;
-                char processDirectory[256];
-                processRun->quantum = quantumValue;
-                if (getcwd(processDirectory, sizeof(processDirectory)) != NULL)
-                {
-                    processCode = strcat(processDirectory, "/process.out");
-                }
-                else
-                {
-                    perror("Error in getting the working directory ");
-                }
-                execl(processCode, processCode, str_remainTime, NULL);
-                exit(1);
-            }
-            else
-            {
-                processRun->PID = pid;
-                msg2.mType = pid;
+                    remainMemSize-=processRun->memSize;
+                    pid = fork();
+
+                    if (pid == -1)
+                    {
+                        perror("Error in forking process;)\n");
+                    }
+                    else if (pid == 0)
+                    {
+                            /********* Process Code *********/
+                        processRun->PID = getpid();
+                        processRun->startTime=getClk();
+                        printProcessInfo(processRun);
+                        char *processCode;
+                        char processDirectory[256];
+                        processRun->quantum = quantumValue;
+                        if (getcwd(processDirectory, sizeof(processDirectory)) != NULL)
+                        {
+                            processCode = strcat(processDirectory, "/process.out");
+                        }
+                        else
+                        {
+                            perror("Error in getting the working directory ");
+                        }
+                        execl(processCode, processCode, str_remainTime, NULL);
+                        exit(1);
+                    }else{
+                        processRun->PID = pid;
+                        msg2.mType = pid;
+                    }
             }
             return;
         }
@@ -519,9 +627,10 @@ int main(int argc, char *argv[])
         key_t key_sem_sync = ftok("keyfile", 80);
         sem_sync = semget(key_sem_sync,1,0666|IPC_CREAT);
 
-        int schedulerAlgorithm = atoi(argv[1]);
+        schedulerAlgorithm = atoi(argv[1]);
         numberProcesses = atoi(argv[2]);
         int quantumValue = atoi(argv[3]);
+        printf("quantumValue is sssss%d",quantumValue);
         
         if (schedulerAlgorithm == 1)
             processQueue = createPriorityQueue();
@@ -536,27 +645,28 @@ int main(int argc, char *argv[])
 
         processFinished = createPriorityQueue();
         int processCounts = numberProcesses;
+        tempQueue = createLinkedList();
         printf("nooooooooooooooooooooooooooooooooo processs %d\n", processCounts);
         while (finishedProcesses != processCounts)
         {
             if (schedulerAlgorithm == 1)
             {
                 // call HPF
-                down(sem_sync);
+                // down(sem_sync);
                 HPF();
                 sleep(1);
             }
             else if (schedulerAlgorithm == 2)
             {
                 //call SRTN
-                down(sem_sync);
+                // down(sem_sync);
                 SRTN();
                 sleep(1);
             }
             else if (schedulerAlgorithm == 3)
             {
                 // call RB
-                down(sem_sync);
+                // down(sem_sync);
                 RB(quantumValue);
                 sleep(1);
             }

@@ -21,7 +21,7 @@ typedef short bool;
 #define false 0
 
 #define SHKEY 300
-#define mem_Size 1024
+#define MEM_SIZE 1024
 
 
 //don't mess with this variable//
@@ -45,7 +45,7 @@ int CountProcess (char* fileName){
         perror("Error Openning File");
         return 1;
     };
-    char line [100];
+    char line [1000];
     int numberProcesses=0;
     while (fgets(line, sizeof(line),fptr1) != NULL){;
         numberProcesses++;
@@ -170,6 +170,50 @@ void Insert (struct List *linkedList, struct processData* newProcess){
     newNode->next = NULL;
     linkedList->size++;
 }
+void enqueMem(struct List *queue, struct processData* newProcess){
+    struct Node*newNode =createNode(newProcess);
+    if(queue->head == NULL){
+        queue->head=newNode;
+        queue->size++;
+        return;
+    }
+    if ( queue->head->process->memSize > newProcess->memSize)
+    {
+        struct Node*temp=queue->head;
+        queue->head=newNode;
+        newNode->next=temp;
+        queue->size++;
+        return;
+    }
+
+    if(queue->size == 1){
+        if( queue->head->process->memSize < newProcess->memSize){
+           queue->head->next = newNode; 
+        }else{
+            struct Node*temp=queue->head;
+            queue->head=newNode;
+            newNode->next=temp;
+        }
+        queue->size++;
+        return;
+    }
+    struct Node*prevNode=queue->head,*nextNode=queue->head->next;
+    for(int i=0;i < queue->size -1 ; i++){
+        if ( newProcess->memSize > nextNode->process->memSize) 
+        {
+           prevNode = prevNode->next;
+           nextNode = nextNode->next;
+        }else if (newProcess->memSize == nextNode->process->memSize && newProcess->remainingTime > nextNode->process->remainingTime){
+            prevNode = prevNode->next;
+            nextNode = nextNode->next;
+        }else{
+            break;
+        }
+    }
+    prevNode->next = newNode;
+    newNode->next = nextNode;
+    queue->size++;
+}
 
 void enqueue(struct List *queue, struct processData* newProcess){
     struct Node*newNode =createNode(newProcess);
@@ -275,9 +319,9 @@ void printList(struct List *list)
 }
 
 void printProcessInfo(struct processData*process){
-    printf("Process id:%d Arrival Time:%d Run Time: %d Remain Time:%d Priority: %d Finished Time: %d PID: %d Waiting Time:%d State:%s Quantum Remaining:%d\n",
+    printf("Process id:%d Arrival Time:%d Run Time: %d Remain Time:%d Priority: %d Finished Time: %d PID: %d Waiting Time:%d State:%s Quantum Remaining:%d Memory:%d\n",
     process->id,process->arrivalTime,process->runTime,process->remainingTime,process->priority,process->finishedTime,process->PID,
-    process->waitingTime,process->state,process->quantum);
+    process->waitingTime,process->state,process->quantum,process->memSize);
 }
 
 /********************
@@ -336,7 +380,6 @@ int up(int sem)
 }
 
 /***************************** Memory Allocation **************************************/
-
 struct memoryNode
 {
     int size;
@@ -359,127 +402,110 @@ struct memoryTree
 
 struct memoryNode *createMemoryNode(int size, int startPosition, struct memoryNode *parent)
 {
-    struct memoryNode *newNode = (struct memoryNode *)malloc(sizeof(struct memoryNode));
-    if (newNode == NULL)
+    struct memoryNode *node = (struct memoryNode *)malloc(sizeof(struct memoryNode));
+    if (node == NULL)
     {
-        free(newNode);
         return NULL;
     }
-    newNode->size = size;
-    newNode->pid = -1;
-    newNode->emptyNode = true;
-    newNode->hasProcess = false;
-    newNode->hasChild = false;
+
+    node->size = size;
+    node->pid = -1; // no process yet is created
+    node->emptyNode = true;
+    node->hasProcess = false;
+    node->hasChild = false;
     if (parent == NULL)
     {
-        newNode->isRoot = true;
+        node->isRoot = true;
     }
     else
     {
-        newNode->isRoot = false;
+        node->isRoot = false;
     }
-    newNode->parent = parent;
-    newNode->startPosition = startPosition;
-    newNode->endPosition = startPosition + size - 1;
-    newNode->left = NULL;
-    newNode->right = NULL;
-    return newNode;
-}
+    node->startPosition = startPosition;
+    node->endPosition = startPosition + size - 1;
+    node->parent = parent;
+    node->left = NULL;
+    node->right = NULL;
 
+    return node;
+}
 struct memoryTree *createMemoryTree()
-{ 
-    struct memoryTree *newTree = (struct memoryTree *)malloc(sizeof(struct memoryTree));
-    if (newTree == NULL)
+{
+    struct memoryTree *tree = (struct memoryTree *)malloc(sizeof(struct memoryTree));
+    if (tree == NULL)
     {
-        free(newTree);
+        // for memory allocation failure
         return NULL;
     }
-    newTree->root = createMemoryNode(mem_Size, 0, NULL);
-    if (newTree->root == NULL)
+    // used create node function to create the node
+    tree->root = createMemoryNode(MEM_SIZE, 0, NULL);
+
+    // this if for the case of failure to create node then memory previously allocated for the tree itself is no longer needed bec there is no root
+    if (tree->root == NULL)
     {
-        free(newTree);
+        // for memory allocation failure
+        free(tree);
         return NULL;
     }
-    return newTree;
+    return tree;
 }
 
 struct memoryNode *findProcessNode(struct memoryNode *current, int targetPid)
 {
+    // check if the current node is null
     if (current == NULL)
     {
         return NULL;
     }
+
+    // returning this node if it has the matching process ID
     if (current->pid == targetPid)
     {
         return current;
     }
-    struct memoryNode *left = findProcessNode(current->left, targetPid);
-    struct memoryNode *right = findProcessNode(current->right, targetPid);
-    if (left != NULL)
+
+    // traverse through the left subtree
+    struct memoryNode *foundInLeft = findProcessNode(current->left, targetPid);
+    if (foundInLeft != NULL)
     {
-        return left;
+        return foundInLeft;
     }
-    if (right != NULL)
-    {
-        return right;
-    }
-    return NULL;
+
+    // traverse through the right subtree
+    return findProcessNode(current->right, targetPid);
 }
 
 struct memoryNode *findSuitableSize(struct memoryNode *current, int requiredSize)
 {
-    if (current == NULL)
+    // i am here checking if the current code is equal to null or if the required size to be allocated is smaller than the current size of the node
+    if (current == NULL || current->size < requiredSize)
     {
         return NULL;
     }
-    if (current->size < requiredSize)
+
+    struct memoryNode *leftNode = findSuitableSize(current->left, requiredSize);
+    struct memoryNode *rightNode = findSuitableSize(current->right, requiredSize);
+
+    // i am here checking if the node exists and then i check if the size of this node is greater than the required size and if this current node is empty
+    int leftSize = (leftNode != NULL && leftNode->size >= requiredSize && leftNode->emptyNode && leftNode->left == NULL && leftNode->right == NULL) ? leftNode->size : INT_MAX;
+    int rightSize = (rightNode != NULL && rightNode->size >= requiredSize && rightNode->emptyNode && rightNode->left == NULL && rightNode->right == NULL) ? rightNode->size : INT_MAX;
+
+    if (leftSize <= rightSize && leftSize < current->size)
     {
-        return NULL;
+        return leftNode;
     }
-    struct memoryNode *left = findSuitableSize(current->left, requiredSize);
-    struct memoryNode *right = findSuitableSize(current->right, requiredSize);
-    int leftSize, rightSize;
-    if (left != NULL && left->size >= requiredSize && left->emptyNode && left->left == NULL && left->right == NULL)
+    else if (rightSize < leftSize && rightSize < current->size)
     {
-        leftSize = INT_MAX;
-    }
-    else
-    {
-        leftSize = 0;
-    }
-    if (right != NULL && right->size >= requiredSize && right->emptyNode && right->left == NULL && right->right == NULL)
-    {
-        rightSize = INT_MAX;
-    }
-    else
-    {
-        rightSize = 0;
-    }
-    if (leftSize >= rightSize && current->size >= rightSize)
-    {
-        return left; // idk lw elmaforud 23ks el left bl right wala l2
-    }
-    else if (rightSize >= leftSize && current->size >= leftSize)
-    {
-        return right;
-    }
-    else
-    {
-        return current;
+        return rightNode;
     }
     if (current->hasProcess == 1)
     {
         return NULL;
     }
-    if (current->size < requiredSize)
-    {
-        return NULL;
-    }
-    if (current->emptyNode && current->size >= requiredSize)
+    else
     {
         return current;
     }
-
 }
 
 struct memoryNode *findClosestSize(struct memoryTree *tree, int size)
@@ -490,16 +516,22 @@ struct memoryNode *findClosestSize(struct memoryTree *tree, int size)
     {
         wantedSize = 8;
     }
+    printf("WANTED SIZE %d \n", wantedSize);
+    printf("opeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeen000000000000000000000000\n");
     struct memoryNode *foundNode = findSuitableSize(tree->root, wantedSize);
-
-
-    printf("alollllllllllllllllllllllllllllllllllll %d\n",wantedSize);
-    if (foundNode ==  tree->root && foundNode->hasChild == true)
+    printf("opeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeen\n");
+    // printf("STARTING POSITION OF FOUND NODE %d \n",foundNode->startPosition);
+    // printf("STATUS OF FOUND NODE %d \n", foundNode->hasProcess);
+    if(foundNode== NULL){
+        return NULL;
+    }
+    if (foundNode == tree->root && foundNode->hasChild == true)
     {
         return NULL;
     }
     while (foundNode->size != wantedSize)
     {
+        printf("SIZE OF FOUND NODE %d \n", foundNode->size);
         struct memoryNode *leftNode = createMemoryNode(foundNode->size / 2, foundNode->startPosition, foundNode);
         struct memoryNode *rightNode = createMemoryNode(foundNode->size / 2, foundNode->startPosition + foundNode->size / 2, foundNode);
         leftNode->emptyNode = true;
@@ -507,33 +539,42 @@ struct memoryNode *findClosestSize(struct memoryTree *tree, int size)
         foundNode->left = leftNode;
         foundNode->right = rightNode;
         foundNode->hasChild = true;
+
         foundNode = findSuitableSize(tree->root, wantedSize);
-         printf("alollllllllllllllllllllllllllllllllllll\n");
     }
+
     return foundNode;
+}
+
+void printTree(struct memoryNode *root)
+{
+    if (root == NULL)
+        return;
+
+    printTree(root->left); // traverse through the Left Part
+    printf("Size: %d, PID: %d, Start: %d, End: %d, HAS PROCESS: %d\n", root->size, root->pid, root->startPosition, root->startPosition + root->size, root->hasProcess);
+    printTree(root->right); // traverse through the right part after finishing all the left part
 }
 
 int *allocateProcess(struct memoryTree *tree, int processSize, int pid)
 {
-     printf("aloooooooooooooooooooooooooooooooo\n");
+     printf("closeeeeeeeeeeeeeeeeeeeeeeee000000000000000000000\n");
     struct memoryNode *foundNode = findClosestSize(tree, processSize);
+    printf("closeeeeeeeeeeeeeeeeeeeeeeee\n");
     int *positions = (int *)malloc(sizeof(int));
-   
+
     if (foundNode == NULL)
     {
         positions[0] = -1;
         positions[1] = -1;
         return positions;
     }
-    printf("aloooooooooooooooooooooooooooooooo11111\n");
     foundNode->pid = pid;
     foundNode->emptyNode = false;
     foundNode->hasProcess = true;
     positions[0] = foundNode->startPosition;
     positions[1] = foundNode->endPosition;
-    printf("aloooooooooooooooooooooooooooooooo2222222\n");
-    // printTree(tree->root);
-     printf("aloooooooooooooooooooooooooooooooo3333\n");
+    printTree(tree->root);
     return positions;
 }
 
@@ -556,8 +597,13 @@ void deleteChildren(struct memoryNode *node)
 void mergeMemory(struct memoryNode *node)
 {
     struct memoryNode *currentNode = node;
+
+    // while (currentNode)
+    // {
+     
     if (currentNode->left && !currentNode->left->hasChild && !currentNode->left->hasProcess && currentNode->right && !currentNode->right->hasChild && !currentNode->right->hasProcess)
     {
+        printf("ANA HENA\n");
         deleteChildren(currentNode);
     }
 
@@ -565,30 +611,31 @@ void mergeMemory(struct memoryNode *node)
         currentNode = currentNode->parent;
     else
         return;
+    // }
 }
 
 int deallocateProcess(struct memoryTree *tree, int pid)
 {
+   
     struct memoryNode *foundNode = findProcessNode(tree->root, pid);
+    
     if (foundNode == NULL)
         return -1;
 
     foundNode->pid = -1;
     foundNode->emptyNode = true;
     foundNode->hasProcess = false;
-    mergeMemory(foundNode->parent);
+
+    if(foundNode->parent!=NULL){
+        mergeMemory(foundNode->parent);
+    }else{
+        mergeMemory(foundNode);
+    }
     return 1;
 }
 
-void printTree(struct memoryNode *root)
-{
-    if (root == NULL)
-        return;
 
-    printTree(root->left); // traverse through the Left Part
-    printf("Size: %d, PID: %d, Start: %d, End: %d, HAS PROCESS: %d\n", root->size, root->pid, root->startPosition, root->startPosition + root->size, root->hasProcess);
-    printTree(root->right); // traverse through the right part after finishing all the left part
-}
+
 
 /*
  * All process call this function at the end to release the communication

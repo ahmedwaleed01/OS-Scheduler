@@ -547,4 +547,4 @@ int main(int argc, char *argv[])
         fclose(perfFile);
 
         destroyClk(true);
-    }
+}

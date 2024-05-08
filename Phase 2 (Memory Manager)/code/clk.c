@@ -45,12 +45,13 @@ int main(int argc, char * argv[])
     *shmaddr = clk; /* initialize shared memory */
     while (1)
     {
-        int check =1;
+        // int check =1;
         sleep(1);
-        if(check){
-             (*shmaddr)++;
-        }
-        check=up(sem_sync);
+         (*shmaddr)++;
+        // if(check){
+            
+        // }
+        // check=up(sem_sync);
        
     }
 }
