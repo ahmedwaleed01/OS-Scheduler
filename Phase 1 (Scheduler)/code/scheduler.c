@@ -347,10 +347,12 @@ void RB(int quantumValue)
         else if (processRun->quantum == 0)
         {
             processRun->quantum = quantumValue;
-            strcpy(processRun->state, "ready");
+            strcpy(processRun->state, "stopped");
+            Log(processRun);
             Insert(processQueue, processRun); 
             isRunning = false; 
         }
+        // started, resumed, stopped, finished.
     }
     /**************************************************************************************
      *  Case there is no process running send fork a process on the top of the queue
@@ -363,43 +365,46 @@ void RB(int quantumValue)
             if (processRun == NULL)
                 return;
             isRunning = true;
-            strcpy(processRun->state, "started");
-            processRun->waitingTime=getClk()-processRun->arrivalTime;  
-            Log(processRun); 
-            char str_remainTime[10];
-            sprintf(str_remainTime, "%d", processRun->remainingTime);
+            if(strcmp("stopped",processRun->state)==0){
+                strcpy(processRun->state, "resumed");
+                Log(processRun); 
+            }else{
+                printf("processssssssssssssss state %s",processRun->state);
+                strcpy(processRun->state, "started");
+                processRun->waitingTime=getClk()-processRun->arrivalTime;  
+                Log(processRun); 
+                char str_remainTime[10];
+                sprintf(str_remainTime, "%d", processRun->remainingTime);
 
-            pid = fork();
+                pid = fork();
 
-            if (pid == -1)
-            {
-                perror("Error in forking process;)\n");
-            }
-            else if (pid == 0)
-            {
-                    /********* Process Code *********/
-                processRun->PID = getpid();
-                processRun->startTime=getClk();
-                printProcessInfo(processRun);
-                char *processCode;
-                char processDirectory[256];
-                processRun->quantum = quantumValue;
-                if (getcwd(processDirectory, sizeof(processDirectory)) != NULL)
+                if (pid == -1)
                 {
-                    processCode = strcat(processDirectory, "/process.out");
+                    perror("Error in forking process;)\n");
                 }
-                else
+                else if (pid == 0)
                 {
-                    perror("Error in getting the working directory ");
+                        /********* Process Code *********/
+                    processRun->PID = getpid();
+                    processRun->startTime=getClk();
+                    printProcessInfo(processRun);
+                    char *processCode;
+                    char processDirectory[256];
+                    processRun->quantum = quantumValue;
+                    if (getcwd(processDirectory, sizeof(processDirectory)) != NULL)
+                    {
+                        processCode = strcat(processDirectory, "/process.out");
+                    }
+                    else
+                    {
+                        perror("Error in getting the working directory ");
+                    }
+                    execl(processCode, processCode, str_remainTime, NULL);
+                    exit(1);
                 }
-                execl(processCode, processCode, str_remainTime, NULL);
-                exit(1);
             }
-            else
-            {
-                processRun->PID = pid;
-                msg2.mType = pid;
-            }
+            processRun->PID = pid;
+            msg2.mType = pid;
             return;
         }
     }
