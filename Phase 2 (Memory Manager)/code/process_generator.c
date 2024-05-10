@@ -1,24 +1,25 @@
 #include "headers.h"
+#include <gtk/gtk.h> 
 
 void clearResources(int);
 int algorithmChosen;
 char quatum[100]="2";
-// void callBackFunc(GtkWidget* widget,gpointer data){
-//      const char *buttonLabel = (const char*)data;
-//     algorithmChosen=atoi(buttonLabel);
-//     printf("Algorithm Chosen: %d\n", algorithmChosen);
-//     GtkWidget *window = GTK_WIDGET(gtk_widget_get_ancestor(widget, GTK_TYPE_WINDOW));
-//     gtk_widget_destroy(window);
-// }
-// void entry_changed(GtkEditable *editable, gpointer user_data)
-// {
-//     const gchar *text = gtk_entry_get_text(GTK_ENTRY(editable)); 
-//     g_strlcpy(quatum, text, sizeof(quatum)); 
-// }
-// void destroy(GtkWidget* widget, gpointer data) 
-// { 
-//     gtk_main_quit(); 
-// } 
+void callBackFunc(GtkWidget* widget,gpointer data){
+     const char *buttonLabel = (const char*)data;
+    algorithmChosen=atoi(buttonLabel);
+    printf("Algorithm Chosen: %d\n", algorithmChosen);
+    GtkWidget *window = GTK_WIDGET(gtk_widget_get_ancestor(widget, GTK_TYPE_WINDOW));
+    gtk_widget_destroy(window);
+}
+void entry_changed(GtkEditable *editable, gpointer user_data)
+{
+    const gchar *text = gtk_entry_get_text(GTK_ENTRY(editable)); 
+    g_strlcpy(quatum, text, sizeof(quatum)); 
+}
+void destroy(GtkWidget* widget, gpointer data) 
+{ 
+    gtk_main_quit(); 
+} 
   
 int main(int argc, char * argv[])
 {
@@ -26,50 +27,50 @@ int main(int argc, char * argv[])
     /************************************
      *******Initilize GUI Window ********
      ***********************************/
-    // GtkWidget *window;
-    // GtkWidget *vbox_main;
-    // GtkWidget *vbox_buttons;
-    // GtkWidget *label;
-    // GtkWidget *buttonHPF;
-    // GtkWidget *buttonSRTN;
-    // GtkWidget *buttonRB;
-    // GtkWidget *entry; 
-    // GtkWidget *labelQ;
-    // gtk_init(&argc, &argv);
-    // window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-    // gtk_window_set_title(GTK_WINDOW(window), "Scheduler App");
-    // g_signal_connect(window, "destroy", G_CALLBACK(destroy), NULL);
-    // gtk_container_set_border_width(GTK_CONTAINER(window), 50);
+    GtkWidget *window;
+    GtkWidget *vbox_main;
+    GtkWidget *vbox_buttons;
+    GtkWidget *label;
+    GtkWidget *buttonHPF;
+    GtkWidget *buttonSRTN;
+    GtkWidget *buttonRB;
+    GtkWidget *entry; 
+    GtkWidget *labelQ;
+    gtk_init(&argc, &argv);
+    window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+    gtk_window_set_title(GTK_WINDOW(window), "Scheduler App");
+    g_signal_connect(window, "destroy", G_CALLBACK(destroy), NULL);
+    gtk_container_set_border_width(GTK_CONTAINER(window), 50);
 
     /************************************
     *******Add GUI Components **********
     ***********************************/
-    // vbox_main = gtk_box_new(GTK_ORIENTATION_VERTICAL, 5);
-    // gtk_container_add(GTK_CONTAINER(window), vbox_main);
-    // label = gtk_label_new("Choose the scheduler algorithm:");
-    // gtk_box_pack_start(GTK_BOX(vbox_main), label, FALSE, FALSE, 0);
-    // vbox_buttons = gtk_box_new(GTK_ORIENTATION_VERTICAL, 5);
-    // gtk_box_pack_start(GTK_BOX(vbox_main), vbox_buttons, FALSE, FALSE, 0);
-    // buttonHPF = gtk_button_new_with_label("HPF");
-    // buttonSRTN = gtk_button_new_with_label("SRTN");
-    // buttonRB = gtk_button_new_with_label("RB");
-    // entry = gtk_entry_new();
-    // labelQ = gtk_label_new("Enter the Quantum value in Case RB :)");
-    // gtk_box_pack_start(GTK_BOX(vbox_main), labelQ, FALSE, FALSE, 0); 
-    // gtk_box_pack_start(GTK_BOX(vbox_main), entry, FALSE, FALSE, 0); 
-    // g_signal_connect(G_OBJECT(buttonHPF), "clicked", G_CALLBACK(callBackFunc), "1");
-    // g_signal_connect(G_OBJECT(buttonSRTN), "clicked", G_CALLBACK(callBackFunc), "2");
-    // g_signal_connect(G_OBJECT(buttonRB), "clicked", G_CALLBACK(callBackFunc), "3");
-    // g_signal_connect(G_OBJECT(entry), "changed", G_CALLBACK(entry_changed), NULL);
-    // gtk_box_pack_start(GTK_BOX(vbox_buttons), buttonHPF, TRUE, TRUE, 0);
-    // gtk_box_pack_start(GTK_BOX(vbox_buttons), buttonSRTN, TRUE, TRUE, 0);
-    // gtk_box_pack_start(GTK_BOX(vbox_buttons), buttonRB, TRUE, TRUE, 0);
+    vbox_main = gtk_box_new(GTK_ORIENTATION_VERTICAL, 5);
+    gtk_container_add(GTK_CONTAINER(window), vbox_main);
+    label = gtk_label_new("Choose the scheduler algorithm:");
+    gtk_box_pack_start(GTK_BOX(vbox_main), label, FALSE, FALSE, 0);
+    vbox_buttons = gtk_box_new(GTK_ORIENTATION_VERTICAL, 5);
+    gtk_box_pack_start(GTK_BOX(vbox_main), vbox_buttons, FALSE, FALSE, 0);
+    buttonHPF = gtk_button_new_with_label("HPF");
+    buttonSRTN = gtk_button_new_with_label("SRTN");
+    buttonRB = gtk_button_new_with_label("RB");
+    entry = gtk_entry_new();
+    labelQ = gtk_label_new("Enter the Quantum value in Case RB :)");
+    gtk_box_pack_start(GTK_BOX(vbox_main), labelQ, FALSE, FALSE, 0); 
+    gtk_box_pack_start(GTK_BOX(vbox_main), entry, FALSE, FALSE, 0); 
+    g_signal_connect(G_OBJECT(buttonHPF), "clicked", G_CALLBACK(callBackFunc), "1");
+    g_signal_connect(G_OBJECT(buttonSRTN), "clicked", G_CALLBACK(callBackFunc), "2");
+    g_signal_connect(G_OBJECT(buttonRB), "clicked", G_CALLBACK(callBackFunc), "3");
+    g_signal_connect(G_OBJECT(entry), "changed", G_CALLBACK(entry_changed), NULL);
+    gtk_box_pack_start(GTK_BOX(vbox_buttons), buttonHPF, TRUE, TRUE, 0);
+    gtk_box_pack_start(GTK_BOX(vbox_buttons), buttonSRTN, TRUE, TRUE, 0);
+    gtk_box_pack_start(GTK_BOX(vbox_buttons), buttonRB, TRUE, TRUE, 0);
 
-    // gtk_widget_show_all(window);
+    gtk_widget_show_all(window);
 
-    // gtk_main();
-    printf("Choose Algothrim: \n");
-    scanf("%d",&algorithmChosen);
+    gtk_main();
+    // printf("Choose Algothrim: \n");
+    // scanf("%d",&algorithmChosen);
 
     // Read the input files.
     FILE *fptr;

@@ -11,11 +11,11 @@
 #include <unistd.h>
 #include <signal.h>
 #include <string.h>
-// #include <cairo.h>
+#include <cairo.h>
 #include <math.h>
 #include <sys/sem.h>
 #include <limits.h>
-
+#include <cairo.h>
 typedef short bool;
 #define true 1
 #define false 0
@@ -277,25 +277,25 @@ bool isEmpty(struct List *list){
     else return false;
 }
 
-// void draw_list(cairo_t *cr, struct List *list) {
-//     cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
-//     cairo_paint(cr);
+void draw_list(cairo_t *cr, struct List *list) {
+    cairo_set_source_rgb(cr, 1.0, 1.0, 1.0);
+    cairo_paint(cr);
 
-//     // Draw list contents
-//     struct Node *nodeTemp = list->head;
-//     int y = 20; // Starting y position
-//     while (nodeTemp != NULL) {
-//         struct processData *proc = nodeTemp->process;
-//         char text[1000];
-//         sprintf(text, "Process ID: %d, Arrival Time: %d, Running Time: %d, Priority: %d, Remaining Time: %d , Finished Time: %d, state: %s",
-//                proc->id, proc->arrivalTime, proc->runTime, proc->priority, proc->remainingTime, proc->finishedTime, proc->state);
-//         cairo_set_source_rgb(cr, 0, 0, 0); // Set color to black
-//         cairo_move_to(cr, 10, y); // Move to position
-//         cairo_show_text(cr, text); // Draw text
-//         y += 20; // Increment y position
-//         nodeTemp = nodeTemp->next;
-//     }
-// }
+    // Draw list contents
+    struct Node *nodeTemp = list->head;
+    int y = 20; // Starting y position
+    while (nodeTemp != NULL) {
+        struct processData *proc = nodeTemp->process;
+        char text[1000];
+        sprintf(text, "Process ID: %d, Arrival Time: %d, Running Time: %d, Priority: %d, Remaining Time: %d , Finished Time: %d, state: %s",
+               proc->id, proc->arrivalTime, proc->runTime, proc->priority, proc->remainingTime, proc->finishedTime, proc->state);
+        cairo_set_source_rgb(cr, 0, 0, 0); // Set color to black
+        cairo_move_to(cr, 10, y); // Move to position
+        cairo_show_text(cr, text); // Draw text
+        y += 20; // Increment y position
+        nodeTemp = nodeTemp->next;
+    }
+}
 
 void printList(struct List *list)
 {

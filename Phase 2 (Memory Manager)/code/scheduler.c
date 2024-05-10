@@ -580,10 +580,10 @@ int main(int argc, char *argv[])
         // upon termination release the clock resources.
 
         /************Configure Output Image************/
-        // int width = 600;                    
-        // int height = 600;                   
-        // cairo_surface_t *surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, width, height);
-        // cairo_t *cr = cairo_create(surface);
+        int width = 600;                    
+        int height = 600;                   
+        cairo_surface_t *surface = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, width, height);
+        cairo_t *cr = cairo_create(surface);
 
         // Create message queue between process generator and scheduler
         key_t key_id;
@@ -652,21 +652,21 @@ int main(int argc, char *argv[])
             if (schedulerAlgorithm == 1)
             {
                 // call HPF
-                // down(sem_sync);
+                down(sem_sync);
                 HPF();
                 sleep(1);
             }
             else if (schedulerAlgorithm == 2)
             {
                 //call SRTN
-                // down(sem_sync);
+                down(sem_sync);
                 SRTN();
                 sleep(1);
             }
             else if (schedulerAlgorithm == 3)
             {
                 // call RB
-                // down(sem_sync);
+                down(sem_sync);
                 RB(quantumValue);
                 sleep(1);
             }
@@ -676,10 +676,10 @@ int main(int argc, char *argv[])
         printList(processFinished);
 
         /**********Draw The Output Image********/
-        // draw_list(cr, processFinished);
-        // cairo_surface_write_to_png(surface, "output.png");
-        // cairo_destroy(cr);
-        // cairo_surface_destroy(surface);
+        draw_list(cr, processFinished);
+        cairo_surface_write_to_png(surface, "output.png");
+        cairo_destroy(cr);
+        cairo_surface_destroy(surface);
 
         calcQueue = createPriorityQueue();
         perfFile = fopen("scheduler.perf", "w");
