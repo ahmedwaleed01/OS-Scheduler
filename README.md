@@ -9,3 +9,21 @@
 
 ### Sample Output
 ![Image Alt text](images/output.png)
+
+### To run Project
+1. **Download these libraries**
+
+   - ```bash
+        sudo apt-get install libcairo2-dev  
+     ```
+   - ```bash
+        sudo apt-get install libgtk-3-dev 
+     ```
+2. **Compile Project** 
+    - ```bash
+       make
+     ```    
+2. **Run Process Generator**
+    - ```bash
+       make run
+     ```    
