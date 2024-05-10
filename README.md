@@ -4,7 +4,7 @@
 > Non-preemptive Highest Priority First (HPF).
 >  Shortest Remaining time Next (SRTN).
 >   Round Robin (RR).
-
+### Scheduler App Interface
 ![Image Alt text](images/SchedulerApp.png)
 
 ### Sample Output
