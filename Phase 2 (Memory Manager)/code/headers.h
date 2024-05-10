@@ -170,50 +170,6 @@ void Insert (struct List *linkedList, struct processData* newProcess){
     newNode->next = NULL;
     linkedList->size++;
 }
-void enqueMem(struct List *queue, struct processData* newProcess){
-    struct Node*newNode =createNode(newProcess);
-    if(queue->head == NULL){
-        queue->head=newNode;
-        queue->size++;
-        return;
-    }
-    if ( queue->head->process->memSize > newProcess->memSize)
-    {
-        struct Node*temp=queue->head;
-        queue->head=newNode;
-        newNode->next=temp;
-        queue->size++;
-        return;
-    }
-
-    if(queue->size == 1){
-        if( queue->head->process->memSize < newProcess->memSize){
-           queue->head->next = newNode; 
-        }else{
-            struct Node*temp=queue->head;
-            queue->head=newNode;
-            newNode->next=temp;
-        }
-        queue->size++;
-        return;
-    }
-    struct Node*prevNode=queue->head,*nextNode=queue->head->next;
-    for(int i=0;i < queue->size -1 ; i++){
-        if ( newProcess->memSize > nextNode->process->memSize) 
-        {
-           prevNode = prevNode->next;
-           nextNode = nextNode->next;
-        }else if (newProcess->memSize == nextNode->process->memSize && newProcess->remainingTime > nextNode->process->remainingTime){
-            prevNode = prevNode->next;
-            nextNode = nextNode->next;
-        }else{
-            break;
-        }
-    }
-    prevNode->next = newNode;
-    newNode->next = nextNode;
-    queue->size++;
-}
 
 void enqueue(struct List *queue, struct processData* newProcess){
     struct Node*newNode =createNode(newProcess);
@@ -517,11 +473,7 @@ struct memoryNode *findClosestSize(struct memoryTree *tree, int size)
         wantedSize = 8;
     }
     printf("WANTED SIZE %d \n", wantedSize);
-    printf("opeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeen000000000000000000000000\n");
     struct memoryNode *foundNode = findSuitableSize(tree->root, wantedSize);
-    printf("opeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeen\n");
-    // printf("STARTING POSITION OF FOUND NODE %d \n",foundNode->startPosition);
-    // printf("STATUS OF FOUND NODE %d \n", foundNode->hasProcess);
     if(foundNode== NULL){
         return NULL;
     }
@@ -558,9 +510,7 @@ void printTree(struct memoryNode *root)
 
 int *allocateProcess(struct memoryTree *tree, int processSize, int pid)
 {
-     printf("closeeeeeeeeeeeeeeeeeeeeeeee000000000000000000000\n");
     struct memoryNode *foundNode = findClosestSize(tree, processSize);
-    printf("closeeeeeeeeeeeeeeeeeeeeeeee\n");
     int *positions = (int *)malloc(sizeof(int));
 
     if (foundNode == NULL)

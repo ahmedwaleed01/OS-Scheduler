@@ -3,7 +3,7 @@
 
 void clearResources(int);
 int algorithmChosen;
-char quatum[100]="2";
+char quatum[100]="1";
 void callBackFunc(GtkWidget* widget,gpointer data){
      const char *buttonLabel = (const char*)data;
     algorithmChosen=atoi(buttonLabel);
@@ -53,9 +53,9 @@ int main(int argc, char * argv[])
     gtk_box_pack_start(GTK_BOX(vbox_main), vbox_buttons, FALSE, FALSE, 0);
     buttonHPF = gtk_button_new_with_label("HPF");
     buttonSRTN = gtk_button_new_with_label("SRTN");
-    buttonRB = gtk_button_new_with_label("RB");
+    buttonRB = gtk_button_new_with_label("RR");
     entry = gtk_entry_new();
-    labelQ = gtk_label_new("Enter the Quantum value in Case RB :)");
+    labelQ = gtk_label_new("Enter the Quantum value in Case RR :)");
     gtk_box_pack_start(GTK_BOX(vbox_main), labelQ, FALSE, FALSE, 0); 
     gtk_box_pack_start(GTK_BOX(vbox_main), entry, FALSE, FALSE, 0); 
     g_signal_connect(G_OBJECT(buttonHPF), "clicked", G_CALLBACK(callBackFunc), "1");
