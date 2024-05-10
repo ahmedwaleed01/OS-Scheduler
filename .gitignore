@@ -3,5 +3,5 @@
 *.o
 .vscode/
 *.png
-*.pref
+*.perf
 *.log
